@@ -122,16 +122,43 @@ contract Vault is IVault, Ownable, ReentrancyGuard {
         emit StrategyUpdated(oldStrategy, _strategy);
     }
 
-    /// @inheritdoc IVault
     function optimizeAllocation() external onlyOwner nonReentrant {
         if (_totalAssets == 0) revert InvalidAmount();
 
         IRestakingStrategy.Allocation[] memory allocs = strategy.calculateAllocation(_totalAssets);
 
-        // Execute the strategy on-chain
+        // Execute the strategy on-chain globally
         strategy.executeStrategy(_totalAssets);
 
         emit AllocationOptimized(_totalAssets, allocs.length, block.timestamp);
+    }
+
+    /// @inheritdoc IVault
+    function optimizeMyPosition() external nonReentrant {
+        uint256 userShares = _shares[msg.sender];
+        if (userShares == 0) revert InsufficientBalance();
+        
+        uint256 userEth = StakeFlowMath.calculateAssets(userShares, _totalShares, _totalAssets);
+        
+        IRestakingStrategy.Allocation[] memory allocs = strategy.calculateAllocation(userEth);
+        strategy.executeStrategyFor(msg.sender, userEth);
+
+        address[] memory vals = new address[](allocs.length);
+        uint256[] memory amts = new uint256[](allocs.length);
+        
+        for(uint256 i = 0; i < allocs.length; i++) {
+            vals[i] = allocs[i].validator;
+            amts[i] = allocs[i].amount;
+        }
+        
+        emit PositionOptimized(msg.sender, userEth, vals, amts);
+    }
+
+    /// @inheritdoc IVault
+    function emergencyWithdraw() external onlyOwner nonReentrant {
+        uint256 balance = address(this).balance;
+        if (balance == 0) revert InvalidAmount();
+        _safeTransferETH(owner(), balance);
     }
 
     /// @notice Trigger a rebalance through the strategy
@@ -217,8 +244,7 @@ contract Vault is IVault, Ownable, ReentrancyGuard {
         if (!success) revert TransferFailed();
     }
 
-    /// @notice Receive ETH (e.g., from rewards, slashed returns)
-    receive() external payable {
-        _totalAssets += msg.value;
+    receive() external payable { 
+        revert("Use deposit() or distributeRewards()");
     }
 }

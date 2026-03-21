@@ -26,6 +26,14 @@ interface IVault {
     event RewardsDistributed(uint256 amount, uint256 timestamp);
     event AllocationExecuted(address indexed user, uint256 totalAmount);
     event AllocationOptimized(uint256 totalAmount, uint256 validatorCount, uint256 timestamp);
+    
+    /// @notice Emitted when a specific user's position is optimized
+    event PositionOptimized(
+        address indexed user,
+        uint256 totalAmount,
+        address[] validators,
+        uint256[] amounts
+    );
     event StrategyUpdated(address indexed oldStrategy, address indexed newStrategy);
 
     // ═══════════════════════════════════════════════════════
@@ -56,6 +64,12 @@ interface IVault {
     /// @param ethAmount The ETH amount to withdraw
     /// @return sharesRedeemed The shares burned
     function withdrawETH(uint256 ethAmount) external returns (uint256 sharesRedeemed);
+
+    /// @notice Emergency withdrawal of funds for safety
+    function emergencyWithdraw() external;
+
+    /// @notice Optimizes the caller's specific position by delegating to the strategy
+    function optimizeMyPosition() external;
 
     /// @notice Trigger allocation optimization using strategy
     function optimizeAllocation() external;

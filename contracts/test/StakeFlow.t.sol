@@ -222,17 +222,23 @@ contract VaultTest is Test {
     //           OPTIMIZATION TESTS
     // ═══════════════════════════════════════════════
 
-    function test_OptimizeAllocation() public {
-        vm.prank(alice);
-        vault.deposit{ value: 10 ether }();
+    function test_OptimizeMyPosition() public {
+        uint256 depositAmount = 30 ether;
+        vm.deal(alice, depositAmount);
 
-        // Should not revert
-        vault.optimizeAllocation();
+        vm.prank(alice);
+        vault.deposit{ value: depositAmount }();
+
+        vm.prank(alice);
+        vault.optimizeMyPosition();
+
+        assertEq(vault.totalValueLocked(), depositAmount);
     }
 
     function test_RevertWhen_OptimizeWithZeroAssets() public {
-        vm.expectRevert(IVault.InvalidAmount.selector);
-        vault.optimizeAllocation();
+        // Should revert because 0 assets (InsufficientBalance for the user)
+        vm.expectRevert(IVault.InsufficientBalance.selector);
+        vault.optimizeMyPosition();
     }
 
     // ═══════════════════════════════════════════════
@@ -313,11 +319,11 @@ contract VaultTest is Test {
     //            RECEIVE ETH TEST
     // ═══════════════════════════════════════════════
 
-    function test_ReceiveETH() public {
-        vm.deal(address(this), 1 ether);
+    function test_ReceiveETH_Reverts() public {
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
         (bool success,) = address(vault).call{ value: 1 ether }("");
-        assertTrue(success, "Should accept ETH");
-        assertEq(vault.totalValueLocked(), 1 ether, "Should update TVL");
+        assertFalse(success, "Should revert on raw ETH transfer");
     }
 }
 
@@ -847,8 +853,9 @@ contract IntegrationTest is Test {
 
         assertEq(vault.totalValueLocked(), 30 ether);
 
-        // 2. Owner optimizes allocation
-        vault.optimizeAllocation();
+        // 2. User optimizes allocation
+        vm.prank(alice);
+        vault.optimizeMyPosition();
 
         // 3. Rewards come in
         vm.deal(address(this), 3 ether);

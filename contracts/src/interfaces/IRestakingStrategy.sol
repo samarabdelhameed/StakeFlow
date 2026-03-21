@@ -51,7 +51,11 @@ interface IRestakingStrategy {
     /// @param totalAmount The total amount to restake
     function executeStrategy(uint256 totalAmount) external;
 
-    /// @notice Trigger a rebalance of existing allocations
+    /// @notice Execute allocation on behalf of a specific user
+    function executeStrategyFor(address user, uint256 amount) external;
+    
+    /// @notice Retrieve specific user allocation amount for a validator
+    function userAllocations(address user, address validator) external view returns(uint256);
     function rebalance() external;
 
     /// @notice Get current allocation for a validator (in basis points)

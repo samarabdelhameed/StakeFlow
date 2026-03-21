@@ -19,7 +19,10 @@ contract RestakingStrategy is IRestakingStrategy, Ownable, ReentrancyGuard {
     // ═══════════════════════════════════════════════════════
 
     IValidatorRegistry public validatorRegistry;
-    mapping(address => uint256) private _allocations; // validator → percentage in basis points
+    mapping(address => uint256) private _allocations; // global (for vault total)
+    
+    // WOW Factor: Track user portfolio allocations on-chain
+    mapping(address => mapping(address => uint256)) public userAllocations;
 
     uint256 public performanceWeight = 6_000; // 60% weight for performance
     uint256 public riskWeight = 2_000;        // 20% weight for risk
@@ -55,6 +58,20 @@ contract RestakingStrategy is IRestakingStrategy, Ownable, ReentrancyGuard {
         }
 
         emit StrategyExecuted(totalAmount, allocs.length, block.timestamp);
+    }
+
+    /// @inheritdoc IRestakingStrategy
+    function executeStrategyFor(address user, uint256 amount) external onlyOwner nonReentrant {
+        if (amount == 0) revert ZeroAmount();
+
+        Allocation[] memory allocs = _calculateOptimalAllocation(amount);
+        if (allocs.length == 0) revert NoValidators();
+
+        for (uint256 i = 0; i < allocs.length; i++) {
+            userAllocations[user][allocs[i].validator] = allocs[i].amount;
+        }
+
+        // We emit the global executed event for compatibility, but the Vault emits the detailed one
     }
 
     /// @inheritdoc IRestakingStrategy
