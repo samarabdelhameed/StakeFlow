@@ -156,6 +156,18 @@ Smart Contracts (Foundry / Solidity)
 
 ---
 
+## Deployed Contracts (Arbitrum Sepolia)
+
+The protocol is live and verified on the Arbitrum Sepolia Testnet:
+
+- **Vault**: [`0x5bE88f73507E46ba84Bd0b5A0aC9Ad55fBc7e236`](https://sepolia.arbiscan.io/address/0x5be88f73507e46ba84bd0b5a0ac9ad55fbc7e236)
+- **RestakingStrategy**: [`0x6e3Fd967715afD552F31663E4eAa148537fCdBEa`](https://sepolia.arbiscan.io/address/0x6e3fd967715afd552f31663e4eaa148537fcdbea)
+- **ValidatorRegistry**: [`0xFe7058d7cEcC499e88CcAB48f22728540329120b`](https://sepolia.arbiscan.io/address/0xfe7058d7cecc499e88ccab48f22728540329120b)
+
+All contracts are fully verified on Arbiscan with the respective source code and ABIs.
+
+---
+
 ## Backend (Allocation Engine)
 
 Handles:
@@ -209,10 +221,10 @@ StakeFlow provides a foundation for:
 
 ## Future Work
 
-- Monte Carlo risk simulation
 - Dynamic slashing prediction
 - Multi-chain restaking support
 - AI-assisted allocation models
+- Automated yield compounding
 
 ---
 

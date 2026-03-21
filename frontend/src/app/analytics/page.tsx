@@ -1,268 +1,171 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  ScatterChart, Scatter, ZAxis,
-  AreaChart, Area,
-} from "recharts";
-import { TiltCard, AnimatedCounter, RiskGauge, StaggerContainer, StaggerItem } from "@/components/UIComponents";
-
-const COLORS = ["#CAFF33", "#8B5CF6", "#06D6A0", "#FF4D6A", "#FFB800"];
-
-const donutData = [
-  { name: "Epsilon", value: 21.92, color: COLORS[0] },
-  { name: "Beta", value: 21.55, color: COLORS[1] },
-  { name: "Alpha", value: 20.41, color: COLORS[2] },
-  { name: "Gamma", value: 18.16, color: COLORS[3] },
-  { name: "Delta", value: 17.96, color: COLORS[4] },
-];
-
-const growthData = [
-  { month: "Jan", staked: 5000, rewards: 45 },
-  { month: "Feb", staked: 6200, rewards: 62 },
-  { month: "Mar", staked: 7800, rewards: 85 },
-  { month: "Apr", staked: 9500, rewards: 110 },
-  { month: "May", staked: 11000, rewards: 145 },
-  { month: "Jun", staked: 13200, rewards: 180 },
-  { month: "Jul", staked: 15750, rewards: 220 },
-];
-
-const riskRewardData = [
-  { name: "Epsilon", risk: 30, reward: 95.6, size: 22, color: COLORS[0] },
-  { name: "Beta", risk: 15, reward: 94.0, size: 22, color: COLORS[1] },
-  { name: "Alpha", risk: 20, reward: 89.0, size: 20, color: COLORS[2] },
-  { name: "Gamma", risk: 35, reward: 79.2, size: 18, color: COLORS[3] },
-  { name: "Delta", risk: 10, reward: 78.2, size: 18, color: COLORS[4] },
-];
-
-const performanceTimeline = [
-  { month: "Jan", Epsilon: 85, Beta: 80, Alpha: 75, Gamma: 60, Delta: 55 },
-  { month: "Feb", Epsilon: 87, Beta: 82, Alpha: 78, Gamma: 62, Delta: 58 },
-  { month: "Mar", Epsilon: 90, Beta: 85, Alpha: 80, Gamma: 65, Delta: 60 },
-  { month: "Apr", Epsilon: 92, Beta: 88, Alpha: 82, Gamma: 68, Delta: 62 },
-  { month: "May", Epsilon: 95, Beta: 90, Alpha: 84, Gamma: 70, Delta: 64 },
-  { month: "Jun", Epsilon: 94, Beta: 91, Alpha: 83, Gamma: 69, Delta: 63 },
-  { month: "Jul", Epsilon: 98, Beta: 92, Alpha: 85, Gamma: 70, Delta: 65 },
-];
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSimulation } from '@/features/simulation/hooks/useSimulation';
+import CorrelationMatrix from '@/features/simulation/components/CorrelationMatrix';
+import MonteCarloChart from '@/features/simulation/components/MonteCarloChart';
+import RiskMetrics from '@/features/simulation/components/RiskMetrics';
+import AILoader from '@/components/ui/AILoader';
+import { Play, RotateCcw } from 'lucide-react';
 
 export default function AnalyticsPage() {
-  const [timeframe, setTimeframe] = useState("7D");
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const { runSimulation, data, isLoading, error } = useSimulation();
+  
+  const [amount, setAmount] = useState<number>(100);
+
+  // Mock initial validators to represent the options before fetching from Smart Contracts
+  const MOCK_VALIDATORS = [
+    { id: 'Val_A', performance: 8, risk: 2, commission: 5, cap: 1000, volatility: 0.15 },
+    { id: 'Val_B', performance: 9, risk: 4, commission: 8, cap: 500, volatility: 0.25 },
+    { id: 'Val_C', performance: 6, risk: 1, commission: 3, cap: 2000, volatility: 0.08 },
+    { id: 'Val_D', performance: 12, risk: 8, commission: 10, cap: 300, volatility: 0.40 },
+  ];
+
+  // Cholesky-ready realistic systemic correlation matrix
+  const CORRELATION_MATRIX = [
+    [1.0, 0.8, 0.2, 0.5],
+    [0.8, 1.0, 0.1, 0.7],
+    [0.2, 0.1, 1.0, 0.0],
+    [0.5, 0.7, 0.0, 1.0],
+  ];
+
+  const handleRun = () => {
+    runSimulation(amount, MOCK_VALIDATORS, CORRELATION_MATRIX);
+  };
 
   return (
-    <>
-      <div className="topbar">
-        <div className="topbar-left">
-          <h1>📈 Analytics</h1>
-          <p>Deep dive into performance metrics & risk analysis</p>
-        </div>
-        <div className="topbar-right">
-          <select className="input input-sm" style={{ width: "160px", padding: "8px" }} defaultValue="All">
-            <option value="All">All Validators</option>
-            <option value="Alpha">Validator Alpha</option>
-            <option value="Beta">Validator Beta</option>
-            <option value="Gamma">Validator Gamma</option>
-          </select>
-          <div className="tabs">
-            {["24H", "7D", "30D", "1Y", "All"].map((t) => (
-              <button key={t} className={`tab ${timeframe === t ? "active" : ""}`} onClick={() => setTimeframe(t)}>
-                {t}
-              </button>
-            ))}
+    <div className="min-h-screen bg-slate-950 text-slate-200 p-6 md:p-12 font-sans overflow-x-hidden">
+      {/* Decorative Background Glows */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-cyan-900/20 blur-[120px] rounded-full pointer-events-none z-0" />
+      
+      <div className="relative z-10 max-w-6xl mx-auto space-y-8">
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-white/10 pb-6">
+          <div>
+            <h1 className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-fuchsia-500">
+              Institutional Risk Terminal
+            </h1>
+            <p className="mt-2 text-slate-400">
+              AI-driven allocation & Monte Carlo systemic risk simulator
+            </p>
+          </div>
+          
+          <div className="mt-6 md:mt-0 flex gap-4 bg-black/40 p-2 rounded-xl border border-white/10">
+            <div className="flex flex-col">
+              <label className="text-xs text-slate-500 uppercase px-2 mb-1">Portfolio (ETH)</label>
+              <input 
+                type="number" 
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                className="bg-transparent border-none outline-none text-xl font-bold text-white px-2 w-32 focus:ring-0"
+              />
+            </div>
+            <button 
+              onClick={handleRun}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 bg-gradient-to-tr from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-6 py-3 rounded-lg font-semibold shadow-[0_0_15px_rgba(34,211,238,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Simulating...' : <><Play size={18} /> Run AI</>}
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Key Metrics */}
-      <StaggerContainer className="grid-4 section">
-        {[
-          { label: "Total Return", value: 892, suffix: " ETH", color: "var(--neon-green)", change: "+18.4%" },
-          { label: "Avg Score", value: 87.2, suffix: "%", color: "var(--cyan)", change: "+3.1%" },
-          { label: "Risk Score", value: 22, suffix: "/100", color: "var(--neon-green)", change: "-5.2%" },
-          { label: "Sharpe Ratio", value: 2.4, suffix: "", color: "var(--purple)", change: "+0.3" },
-        ].map((m, i) => (
-          <StaggerItem key={i}>
-            <TiltCard className="stat-card" glowColor={`${m.color}10`}>
-              <span className="stat-label">{m.label}</span>
-              <span className="stat-value mono" style={{ color: m.color }}>
-                <AnimatedCounter value={m.value} decimals={m.suffix === "%" || m.suffix === "" ? 1 : 0} suffix={m.suffix} />
-              </span>
-              <span className="stat-change positive">{m.change}</span>
-            </TiltCard>
-          </StaggerItem>
-        ))}
-      </StaggerContainer>
+        {/* ERROR BOUNDARY */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl">
+            Simulation Error: {error}
+          </div>
+        )}
 
-      {/* Donut + Gauges Row */}
-      <div className="grid-2 section">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-        >
-          <div className="card">
-            <h3 className="section-title" style={{ marginBottom: "20px" }}>🍩 Portfolio Distribution</h3>
-            <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-              <div style={{ width: "200px", height: "200px" }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={donutData}
-                      cx="50%" cy="50%"
-                      innerRadius={55}
-                      outerRadius={85}
-                      paddingAngle={3}
-                      dataKey="value"
-                      onMouseEnter={(_, index) => setActiveIndex(index)}
-                      onMouseLeave={() => setActiveIndex(-1)}
-                    >
-                      {donutData.map((entry, i) => (
-                        <Cell
-                          key={i}
-                          fill={entry.color}
-                          stroke="transparent"
-                          style={{
-                            transform: activeIndex === i ? "scale(1.08)" : "scale(1)",
-                            transformOrigin: "center",
-                            transition: "transform 0.3s ease",
-                          }}
-                        />
+        {/* LOADING OVERLAY */}
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="py-12 bg-black/20 rounded-3xl border border-white/5"
+            >
+              <AILoader />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* RESULTS PANEL */}
+        <AnimatePresence>
+          {!isLoading && data && (
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ staggerChildren: 0.2 }}
+              className="space-y-8"
+            >
+              {/* TOP METRICS */}
+              <RiskMetrics 
+                expectedReturn={data.expectedReturn}
+                worstCaseLoss={data.worstCaseLoss}
+                var95={data.monteCarlo?.VaR || 0}
+                cvar95={data.monteCarlo?.CVaR || 0}
+                hhi={data.diversificationScore}
+              />
+
+              <div className="grid lg:grid-cols-3 gap-8">
+                {/* LEFT: CORRELATION MATRIX */}
+                <div className="lg:col-span-1">
+                  <CorrelationMatrix 
+                    matrix={CORRELATION_MATRIX} 
+                    labels={MOCK_VALIDATORS.map(v => v.id.replace('Val_', ''))} 
+                  />
+                  
+                  {/* Quick Allocation breakdown list */}
+                  <div className="mt-6 bg-black/40 border border-white/10 rounded-2xl p-5 shadow-xl">
+                    <h3 className="text-sm font-semibold text-purple-400 mb-4">AI Optimal Allocation</h3>
+                    <div className="space-y-3">
+                      {data.allocations.map((alloc, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-slate-900/50 p-2 rounded-lg border border-white/5">
+                          <span className="text-slate-300 text-sm font-medium">{alloc.validator}</span>
+                          <div className="flex flex-col items-end">
+                            <span className="text-cyan-400 font-bold">{alloc.amount.toFixed(2)} ETH</span>
+                            <span className="text-xs text-slate-500">{(alloc.percentage / 100).toFixed(2)}%</span>
+                          </div>
+                        </div>
                       ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px" }}>
-                {donutData.map((d, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "6px 0",
-                      opacity: activeIndex === -1 || activeIndex === i ? 1 : 0.4,
-                      transition: "opacity 0.2s",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <div style={{ width: "10px", height: "10px", borderRadius: "3px", backgroundColor: d.color }} />
-                      <span style={{ fontSize: "0.85rem" }}>{d.name}</span>
                     </div>
-                    <span className="mono" style={{ fontSize: "0.85rem", color: d.color, fontWeight: 600 }}>
-                      {d.value}%
-                    </span>
                   </div>
-                ))}
+                </div>
+
+                {/* RIGHT: MONTE CARLO CHART */}
+                <div className="lg:col-span-2">
+                  <div className="h-full w-full bg-gradient-to-br from-black/50 to-slate-900/50 border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-2">Simulated Portfolio Trajectories</h3>
+                      <p className="text-sm text-slate-400">10,000 permutations modeled with Cholesky Decoupled Systemic Shocks.</p>
+                    </div>
+                    {data.monteCarlo?.distribution && (
+                      <MonteCarloChart 
+                        distribution={data.monteCarlo.distribution} 
+                        initialAmount={amount}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-        >
-          <div className="card">
-            <h3 className="section-title" style={{ marginBottom: "20px" }}>🛡️ Risk Analysis</h3>
-            <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", padding: "20px 0" }}>
-              <RiskGauge value={22} color="var(--neon-green)" size={110} label="Overall" />
-              <RiskGauge value={68} color="var(--cyan)" size={110} label="Return" />
-              <RiskGauge value={91} color="var(--purple)" size={110} label="Uptime" />
-            </div>
-            <div className="divider" />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
-              <span style={{ color: "var(--text-muted)" }}>Max Drawdown</span>
-              <span className="mono" style={{ color: "var(--neon-green)", fontWeight: 600 }}>-2.3%</span>
-            </div>
+        {/* EMPTY STATE */}
+        {!isLoading && !data && !error && (
+          <div className="py-24 text-center rounded-3xl border border-dashed border-slate-700/50 bg-slate-900/20">
+            <RotateCcw size={48} className="mx-auto text-slate-600 mb-4 opacity-50" />
+            <h2 className="text-xl font-medium text-slate-400">Awaiting Input Parameters</h2>
+            <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">
+              Enter your capital configuration above and run the AI Quant Engine to generate your market-aware stochastic simulations.
+            </p>
           </div>
-        </motion.div>
+        )}
       </div>
-
-      {/* Performance Timeline */}
-      <motion.div
-        className="card section"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.6 }}
-      >
-        <h3 className="section-title" style={{ marginBottom: "20px" }}>📊 Validator Performance Timeline</h3>
-        <div className="chart-container">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={performanceTimeline}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-              <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} domain={[40, 100]} />
-              <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }} />
-              {["Epsilon", "Beta", "Alpha", "Gamma", "Delta"].map((key, i) => (
-                <Line key={key} type="monotone" dataKey={key} stroke={COLORS[i]} strokeWidth={2.5}
-                  dot={false} activeDot={{ r: 6, fill: COLORS[i], stroke: "#1a1a3e", strokeWidth: 2 }} />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
-
-      {/* Bubble Chart + Growth */}
-      <div className="grid-2 section">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-        >
-          <div className="card">
-            <h3 className="section-title" style={{ marginBottom: "20px" }}>🫧 Risk vs Reward Bubble</h3>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                  <XAxis type="number" dataKey="risk" name="Risk" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis type="number" dataKey="reward" name="Score" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <ZAxis type="number" dataKey="size" range={[100, 400]} />
-                  <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }} />
-                  <Scatter data={riskRewardData}>
-                    {riskRewardData.map((d, i) => (
-                      <Cell key={i} fill={d.color} fillOpacity={0.7} />
-                    ))}
-                  </Scatter>
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.6 }}
-        >
-          <div className="card">
-            <h3 className="section-title" style={{ marginBottom: "20px" }}>🚀 Staking Growth</h3>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={growthData}>
-                  <defs>
-                    <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                  <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }} />
-                  <Area type="monotone" dataKey="staked" stroke="#8B5CF6" strokeWidth={2.5} fill="url(#growthGrad)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </>
+    </div>
   );
 }
