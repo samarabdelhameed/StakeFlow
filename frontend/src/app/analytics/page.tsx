@@ -60,6 +60,12 @@ export default function AnalyticsPage() {
           <p>Deep dive into performance metrics & risk analysis</p>
         </div>
         <div className="topbar-right">
+          <select className="input input-sm" style={{ width: "160px", padding: "8px" }} defaultValue="All">
+            <option value="All">All Validators</option>
+            <option value="Alpha">Validator Alpha</option>
+            <option value="Beta">Validator Beta</option>
+            <option value="Gamma">Validator Gamma</option>
+          </select>
           <div className="tabs">
             {["24H", "7D", "30D", "1Y", "All"].map((t) => (
               <button key={t} className={`tab ${timeframe === t ? "active" : ""}`} onClick={() => setTimeframe(t)}>

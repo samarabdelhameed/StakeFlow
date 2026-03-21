@@ -171,8 +171,9 @@ export default function SettingsPage() {
                 className="btn btn-ghost"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() => setToggles({ darkMode: true, notifications: true, emailAlerts: false, autoOptimize: true, advancedAnalytics: true, highRiskWarnings: true })}
               >
-                Cancel
+                Reset
               </motion.button>
               <motion.button
                 className="btn btn-primary"

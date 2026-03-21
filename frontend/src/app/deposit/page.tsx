@@ -4,6 +4,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { TiltCard, AnimatedCounter, StaggerContainer, StaggerItem } from "@/components/UIComponents";
+import { ConfettiButton } from "@/components/ConfettiButton";
+import { Card3D, Button3D } from "@/components/3D/Card3D";
 
 const VALIDATORS = [
   { name: "Validator Alpha", score: 8900, commission: "5%", risk: "Low", color: "#CAFF33" },
@@ -52,7 +54,7 @@ export default function DepositPage() {
         {/* Input Section */}
         <StaggerContainer>
           <StaggerItem>
-            <div className="card" style={{ marginBottom: "24px" }}>
+            <Card3D glowColor="#CAFF33" height="auto" style={{ marginBottom: "24px" }}>
               <h3 className="section-title" style={{ marginBottom: "24px" }}>Staking Amount</h3>
 
               <div className="input-group" style={{ marginBottom: "24px" }}>
@@ -190,25 +192,23 @@ export default function DepositPage() {
               </div>
 
               {/* Deposit Button */}
-              <motion.button
-                className="btn btn-primary btn-lg"
+              <Button3D
+                variant="primary"
+                size="lg"
                 style={{ width: "100%" }}
                 onClick={handleDeposit}
                 disabled={numAmount < 0.01}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                id="deposit-btn"
               >
                 ⚡ Deposit & Optimize
-              </motion.button>
-            </div>
+              </Button3D>
+            </Card3D>
           </StaggerItem>
         </StaggerContainer>
 
         {/* Estimation Card */}
         <StaggerContainer>
           <StaggerItem>
-            <TiltCard style={{ marginBottom: "24px" }} glowColor="rgba(202, 255, 51, 0.06)">
+            <Card3D glowColor="#8B5CF6" height="auto" style={{ marginBottom: "24px" }}>
               <h3 className="section-title" style={{ marginBottom: "20px" }}>📊 Estimation</h3>
               
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -242,7 +242,7 @@ export default function DepositPage() {
                   <span className="mono" style={{ fontSize: "0.85rem" }}>24 hours</span>
                 </div>
               </div>
-            </TiltCard>
+            </Card3D>
           </StaggerItem>
 
           <StaggerItem>

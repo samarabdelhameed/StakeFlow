@@ -111,6 +111,17 @@ export default function TransactionsPage() {
                       {status.label}
                     </span>
                   </div>
+                  <div className="progress-bar" style={{ height: "3px", width: "60%", marginBottom: "4px" }}>
+                    <motion.div
+                      className="progress-fill"
+                      initial={{ width: "0%" }}
+                      animate={{ 
+                        width: tx.status === "Pending" ? "50%" : tx.status === "Confirmed" ? "80%" : "100%" 
+                      }}
+                      transition={{ duration: 1.5, ease: "easeInOut" }}
+                      style={{ background: tx.status === "Completed" ? "var(--neon-green)" : "var(--cyan)" }}
+                    />
+                  </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span className="mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                       {tx.hash}

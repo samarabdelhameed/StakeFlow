@@ -183,14 +183,46 @@ export default function AllocationPage() {
                   </div>
                 </div>
 
-                <div className="progress-bar">
-                  <motion.div
-                    className="progress-fill"
-                    initial={{ width: "0%" }}
-                    animate={{ width: `${a.percentage / 100}%` }}
-                    transition={{ delay: i * 0.1 + 0.3, duration: 0.8 }}
-                    style={{ background: COLORS[i] }}
+                <div style={{ marginTop: "4px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "4px" }}>
+                    <span>Adjust Custom Allocation</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    defaultValue={a.percentage}
+                    className="range-slider"
+                    style={{
+                      width: "100%",
+                      accentColor: COLORS[i],
+                      cursor: "ew-resize"
+                    }}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Just visual feedback per prompt "animated feedback"
+                      e.target.style.opacity = "0.7";
+                      setTimeout(() => e.target.style.opacity = "1", 200);
+                    }}
                   />
+                  <style jsx>{`
+                    .range-slider {
+                      -webkit-appearance: none;
+                      height: 4px;
+                      background: rgba(255,255,255,0.1);
+                      border-radius: 4px;
+                      outline: none;
+                    }
+                    .range-slider::-webkit-slider-thumb {
+                      -webkit-appearance: none;
+                      width: 14px;
+                      height: 14px;
+                      border-radius: 50%;
+                      background: ${COLORS[i]};
+                      cursor: pointer;
+                      box-shadow: 0 0 10px ${COLORS[i]};
+                    }
+                  `}</style>
                 </div>
               </motion.div>
             );
@@ -203,21 +235,25 @@ export default function AllocationPage() {
                   background: "var(--bg-card)",
                   flexDirection: "column",
                   alignItems: "stretch",
-                  gap: "8px",
+                  gap: "6px",
                   height: "100%",
-                  padding: "12px",
+                  padding: "10px",
                 }}
-                onClick={() => setSelectedValidator(null)}
+                onClick={(e) => {
+                  if ((e.target as any).tagName !== "BUTTON") {
+                    setSelectedValidator(null);
+                  }
+                }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h4 style={{ fontSize: "0.85rem", margin: 0 }}>📈 History</h4>
                   <span className="badge" style={{ background: `${COLORS[i]}20`, color: COLORS[i] }}>{a.validatorName}</span>
                 </div>
-                <div style={{ flex: 1, minHeight: "90px", width: "100%" }}>
+                <div style={{ flex: 1, minHeight: "50px", width: "100%" }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={
                       (MOCK_HISTORY[a.validatorName.replace("Validator ", "")] || [50,55,60,65,70,75,80])
-                        .map((v, i) => ({ month: ["J","F","M","A","M","J","J"][i], perf: v }))
+                        .map((v, idx) => ({ month: ["J","F","M","A","M","J","J"][idx], perf: v }))
                     }>
                       <YAxis domain={["auto", "auto"]} hide />
                       <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px" }} />
@@ -225,14 +261,24 @@ export default function AllocationPage() {
                         type="monotone"
                         dataKey="perf"
                         stroke={COLORS[i]}
-                        strokeWidth={3}
-                        dot={{ fill: "#1a1a3e", strokeWidth: 2, r: 4 }}
-                        activeDot={{ r: 6, fill: COLORS[i] }}
+                        strokeWidth={2}
+                        dot={{ fill: "#1a1a3e", strokeWidth: 1, r: 3 }}
+                        activeDot={{ r: 5, fill: COLORS[i] }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                <div style={{ textAlign: "center", fontSize: "0.7rem", color: "var(--text-muted)" }}>Tap to flip back</div>
+                <button 
+                  className="btn btn-primary btn-sm"
+                  style={{ width: "100%", padding: "4px 0", fontSize: "0.75rem", background: COLORS[i], color: "#000" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRecalculate();
+                    setSelectedValidator(null);
+                  }}
+                >
+                  🔄 Recalculate Allocation
+                </button>
               </div>
             );
 

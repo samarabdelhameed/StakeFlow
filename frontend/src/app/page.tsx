@@ -12,6 +12,8 @@ import {
   AnimatedCounter, TiltCard, RiskGauge, Sparkline,
   StaggerContainer, StaggerItem,
 } from "@/components/UIComponents";
+import { Card3D, StatsCard3D, Button3D } from "@/components/3D/Card3D";
+import { AllocationChart3D, PortfolioDonut3D } from "@/components/3D/Charts3D";
 
 const Background3D = dynamic(() => import("@/components/Background3D"), { ssr: false });
 
@@ -99,114 +101,99 @@ export default function Dashboard() {
       {/* Stat Cards */}
       <StaggerContainer className="grid-4 section">
         <StaggerItem>
-          <TiltCard className="stat-card" glowColor="rgba(202, 255, 51, 0.08)">
-            <div className="stat-icon" style={{ background: "var(--neon-green-dim)" }}>💰</div>
-            <span className="stat-label">Total Value Locked</span>
-            <span className="stat-value mono" style={{ color: "var(--neon-green)" }}>
-              <AnimatedCounter value={15750} suffix=" ETH" />
-            </span>
-            <span className="stat-change positive">↑ 12.5%</span>
-          </TiltCard>
+          <StatsCard3D
+            title="Total Value Locked"
+            value={15750}
+            suffix=" ETH"
+            change={12.5}
+            changeType="positive"
+            icon="💰"
+            color="#CAFF33"
+          />
         </StaggerItem>
 
         <StaggerItem>
-          <TiltCard className="stat-card" glowColor="rgba(6, 214, 160, 0.08)">
-            <div className="stat-icon" style={{ background: "var(--cyan-dim)" }}>📈</div>
-            <span className="stat-label">Average APY</span>
-            <span className="stat-value" style={{ color: "var(--cyan)" }}>
-              <AnimatedCounter value={5.2} decimals={1} suffix="%" />
-            </span>
-            <span className="stat-change positive">↑ 0.3%</span>
-          </TiltCard>
+          <StatsCard3D
+            title="Expected Return (APY)"
+            value={5.2}
+            suffix="%"
+            change={0.8}
+            changeType="positive"
+            icon="📈"
+            color="#06D6A0"
+          />
         </StaggerItem>
 
         <StaggerItem>
-          <TiltCard className="stat-card" glowColor="rgba(139, 92, 246, 0.08)">
-            <div className="stat-icon" style={{ background: "var(--purple-dim)" }}>⚡</div>
-            <span className="stat-label">Active Validators</span>
-            <span className="stat-value" style={{ color: "var(--purple)" }}>
-              <AnimatedCounter value={5} />
-            </span>
-            <span className="badge badge-green" style={{ width: "fit-content" }}>
-              <span className="status-dot active" /> All Online
-            </span>
-          </TiltCard>
+          <StatsCard3D
+            title="Active Validators"
+            value={5}
+            change={0}
+            changeType="neutral"
+            icon="⚡"
+            color="#8B5CF6"
+          />
         </StaggerItem>
 
         <StaggerItem>
-          <TiltCard className="stat-card" glowColor="rgba(255, 77, 106, 0.06)">
-            <div className="stat-icon" style={{ background: "var(--amber-dim)" }}>🛡️</div>
-            <span className="stat-label">Risk Level</span>
-            <RiskGauge value={32} color="var(--neon-green)" size={90} label="Low Risk" />
-          </TiltCard>
+          <StatsCard3D
+            title="Risk Level"
+            value={32}
+            suffix="% Low Risk"
+            change={-2.1}
+            changeType="positive"
+            icon="🛡️"
+            color="#FFB800"
+          />
         </StaggerItem>
       </StaggerContainer>
 
-      {/* Charts Row */}
+      {/* Charts Row - 3D Enhanced */}
       <div className="grid-2 section">
         <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
         >
-          <div className="card">
+          <Card3D glowColor="#CAFF33" height={350}>
             <div className="section-header">
-              <h3 className="section-title">📊 TVL Growth</h3>
-              <span className="badge badge-green">+91.2%</span>
+              <h3 className="section-title">📊 Portfolio Distribution</h3>
+              <span className="badge badge-green">3D View</span>
             </div>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={tvlHistory}>
-                  <defs>
-                    <linearGradient id="tvlGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#CAFF33" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#CAFF33" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                  <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                  <Tooltip
-                    contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }}
-                    labelStyle={{ color: "#F1F5F9" }}
-                    itemStyle={{ color: "#CAFF33" }}
-                  />
-                  <Area type="monotone" dataKey="tvl" stroke="#CAFF33" strokeWidth={2.5} fill="url(#tvlGrad)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            {allocationData?.allocations && (
+              <PortfolioDonut3D
+                data={allocationData.allocations.map((a: any, i: number) => ({
+                  name: a.validatorName,
+                  value: parseFloat(a.percentageHuman.replace('%', '')),
+                  color: COLORS[i % COLORS.length],
+                }))}
+                onSliceClick={(validator) => console.log('Selected validator:', validator)}
+              />
+            )}
+          </Card3D>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6 }}
         >
-          <div className="card">
+          <Card3D glowColor="#8B5CF6" height={350}>
             <div className="section-header">
-              <h3 className="section-title">💰 Staking Rewards</h3>
-              <span className="badge badge-purple">Monthly</span>
+              <h3 className="section-title">⚡ Validator Performance</h3>
+              <span className="badge badge-purple">Interactive</span>
             </div>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={rewardsData} barCategoryGap="30%">
-                  <defs>
-                    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#CAFF33" />
-                      <stop offset="100%" stopColor="#8B5CF6" />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                  <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }}
-                    labelStyle={{ color: "#F1F5F9" }}
-                  />
-                  <Bar dataKey="rewards" fill="url(#barGrad)" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            {allocationData?.allocations && (
+              <AllocationChart3D
+                data={allocationData.allocations.map((a: any, i: number) => ({
+                  name: a.validatorName,
+                  value: a.score / 100,
+                  color: COLORS[i % COLORS.length],
+                }))}
+                onValidatorClick={(validator) => console.log('Clicked validator:', validator)}
+              />
+            )}
+          </Card3D>
         </motion.div>
       </div>
 
@@ -311,41 +298,51 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - 3D Enhanced */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8, duration: 0.6 }}
         className="grid-3 section"
       >
-        <Link href="/deposit">
-          <TiltCard className="card-glow-green" style={{ textAlign: "center", cursor: "pointer" }} glowColor="rgba(202, 255, 51, 0.06)">
+        <Card3D glowColor="#CAFF33" height={180} onClick={() => window.location.href = '/deposit'}>
+          <div style={{ textAlign: "center", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>💎</div>
-            <h4 style={{ marginBottom: "6px" }}>Deposit & Stake</h4>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+            <h4 style={{ marginBottom: "8px", color: "#CAFF33" }}>Deposit & Stake</h4>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "16px" }}>
               Deposit ETH and let AI optimize your allocation
             </p>
-          </TiltCard>
-        </Link>
+            <Button3D variant="primary" size="sm">
+              Start Staking →
+            </Button3D>
+          </div>
+        </Card3D>
 
-        <Link href="/allocation">
-          <TiltCard className="card-glow-purple" style={{ textAlign: "center", cursor: "pointer" }} glowColor="rgba(139, 92, 246, 0.06)">
+        <Card3D glowColor="#8B5CF6" height={180} onClick={() => window.location.href = '/allocation'}>
+          <div style={{ textAlign: "center", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🧠</div>
-            <h4 style={{ marginBottom: "6px" }}>View Allocation</h4>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+            <h4 style={{ marginBottom: "8px", color: "#8B5CF6" }}>View Allocation</h4>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "16px" }}>
               See optimized validator distribution strategy
             </p>
-          </TiltCard>
-        </Link>
+            <Button3D variant="secondary" size="sm">
+              View Strategy →
+            </Button3D>
+          </div>
+        </Card3D>
 
-        <Link href="/analytics">
-          <TiltCard style={{ textAlign: "center", cursor: "pointer" }} glowColor="rgba(6, 214, 160, 0.06)">
+        <Card3D glowColor="#06D6A0" height={180} onClick={() => window.location.href = '/analytics'}>
+          <div style={{ textAlign: "center", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>📈</div>
-            <h4 style={{ marginBottom: "6px" }}>Analytics</h4>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+            <h4 style={{ marginBottom: "8px", color: "#06D6A0" }}>Analytics</h4>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "16px" }}>
               Deep dive into performance metrics & risk
             </p>
-          </TiltCard>
-        </Link>
+            <Button3D variant="outline" size="sm">
+              View Analytics →
+            </Button3D>
+          </div>
+        </Card3D>
       </motion.div>
     </>
   );

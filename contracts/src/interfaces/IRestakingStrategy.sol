@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/// @title IRestakingStrategy
+/// @notice Interface for the intelligent allocation engine
 interface IRestakingStrategy {
     // ═══════════════════════════════════════════════════════
     //                        STRUCTS
@@ -12,12 +14,29 @@ interface IRestakingStrategy {
         uint256 amount;
     }
 
+    struct SimulationResult {
+        Allocation[] allocations;
+        uint256 expectedReturn;       // estimated annual return in bps
+        uint256 worstCaseLoss;        // max slashing loss
+        uint256 diversificationScore; // how well diversified (0-10000)
+    }
+
     // ═══════════════════════════════════════════════════════
     //                        EVENTS
     // ═══════════════════════════════════════════════════════
 
     event StrategyExecuted(uint256 totalAmount, uint256 validatorCount, uint256 timestamp);
     event RebalanceTriggered(address indexed triggeredBy, uint256 timestamp);
+    event AllocationSimulated(address indexed user, uint256 amount, uint256 timestamp);
+    event PerformanceWeightUpdated(uint256 oldWeight, uint256 newWeight);
+
+    // ═══════════════════════════════════════════════════════
+    //                        ERRORS
+    // ═══════════════════════════════════════════════════════
+
+    error ZeroAmount();
+    error NoValidators();
+    error InvalidWeight();
 
     // ═══════════════════════════════════════════════════════
     //                     CORE FUNCTIONS
@@ -35,6 +54,19 @@ interface IRestakingStrategy {
     /// @notice Trigger a rebalance of existing allocations
     function rebalance() external;
 
-    /// @notice Get current allocation for a validator
+    /// @notice Get current allocation for a validator (in basis points)
     function getAllocation(address validator) external view returns (uint256);
+
+    /// @notice Simulate allocation before execution (no state change)
+    /// @param amount The amount to simulate with
+    /// @return result Full simulation with risk analysis
+    function simulateAllocation(uint256 amount) external view returns (SimulationResult memory result);
+
+    /// @notice Preview slashing impact for current allocations
+    /// @param totalStaked Total ETH at stake
+    /// @return totalLoss Total worst-case loss
+    /// @return maxSingleLoss Biggest single-validator loss
+    function previewSlashing(
+        uint256 totalStaked
+    ) external view returns (uint256 totalLoss, uint256 maxSingleLoss);
 }

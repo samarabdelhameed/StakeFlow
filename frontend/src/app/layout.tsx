@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "../styles/3d-components.css";
 import Sidebar from "@/components/Sidebar";
 import { Providers } from "@/providers/Providers";
 

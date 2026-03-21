@@ -8,6 +8,8 @@ const NAV_ITEMS = [
   { label: "Dashboard", icon: "📊", href: "/", badge: null },
   { label: "Deposit Stake", icon: "💎", href: "/deposit", badge: null },
   { label: "Allocation", icon: "🧠", href: "/allocation", badge: "AI" },
+  { label: "Withdraw", icon: "💸", href: "/withdraw", badge: null },
+  { label: "Rewards", icon: "🎁", href: "/rewards", badge: "NEW" },
   { label: "Transactions", icon: "📋", href: "/transactions", badge: null },
   { label: "Analytics", icon: "📈", href: "/analytics", badge: null },
 ];
