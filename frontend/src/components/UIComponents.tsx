@@ -240,3 +240,40 @@ export function Sparkline({
     </svg>
   );
 }
+
+/* ─── Flip Card ─── */
+export function FlipCard({
+  front,
+  back,
+  isFlipped,
+  className = "",
+  style,
+}: {
+  front: React.ReactNode;
+  back: React.ReactNode;
+  isFlipped: boolean;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  return (
+    <div className={className} style={{ position: "relative", perspective: "1000px", ...style }}>
+      <motion.div
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        style={{ width: "100%", height: "100%", position: "relative", transformStyle: "preserve-3d" }}
+      >
+        <div style={{ position: "absolute", width: "100%", height: "100%", backfaceVisibility: "hidden" }}>
+          {front}
+        </div>
+        <div
+          style={{
+            position: "absolute", width: "100%", height: "100%",
+            backfaceVisibility: "hidden", transform: "rotateY(180deg)",
+          }}
+        >
+          {back}
+        </div>
+      </motion.div>
+    </div>
+  );
+}

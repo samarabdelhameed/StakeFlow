@@ -8,7 +8,7 @@ import {
   CartesianGrid, ScatterChart, Scatter, ZAxis, Cell,
   LineChart, Line, PieChart, Pie,
 } from "recharts";
-import { TiltCard, AnimatedCounter, StaggerContainer, StaggerItem } from "@/components/UIComponents";
+import { TiltCard, AnimatedCounter, StaggerContainer, StaggerItem, FlipCard } from "@/components/UIComponents";
 
 const API_BASE = "http://localhost:8080";
 const COLORS = ["#CAFF33", "#8B5CF6", "#06D6A0", "#FF4D6A", "#FFB800"];
@@ -131,18 +131,21 @@ export default function AllocationPage() {
 
         {/* Validator Cards Grid */}
         <StaggerContainer className="grid-3" style={{ gap: "16px" }}>
-          {allocationData?.allocations?.map((a: any, i: number) => (
-            <StaggerItem key={a.validatorName}>
+          {allocationData?.allocations?.map((a: any, i: number) => {
+            const isFlipped = selectedValidator === a.validatorName;
+
+            const frontSide = (
               <motion.div
                 className="validator-card"
                 style={{
-                  borderColor: selectedValidator === a.validatorName ? COLORS[i] : undefined,
-                  background: selectedValidator === a.validatorName ? `${COLORS[i]}08` : undefined,
+                  borderColor: isFlipped ? COLORS[i] : undefined,
+                  background: isFlipped ? `${COLORS[i]}08` : "var(--bg-card)",
                   flexDirection: "column",
                   alignItems: "stretch",
                   gap: "12px",
+                  height: "100%",
                 }}
-                onClick={() => setSelectedValidator(a.validatorName === selectedValidator ? null : a.validatorName)}
+                onClick={() => setSelectedValidator(isFlipped ? null : a.validatorName)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -190,8 +193,62 @@ export default function AllocationPage() {
                   />
                 </div>
               </motion.div>
-            </StaggerItem>
-          ))}
+            );
+
+            const backSide = (
+              <div
+                className="validator-card"
+                style={{
+                  borderColor: COLORS[i],
+                  background: "var(--bg-card)",
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  gap: "8px",
+                  height: "100%",
+                  padding: "12px",
+                }}
+                onClick={() => setSelectedValidator(null)}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <h4 style={{ fontSize: "0.85rem", margin: 0 }}>📈 History</h4>
+                  <span className="badge" style={{ background: `${COLORS[i]}20`, color: COLORS[i] }}>{a.validatorName}</span>
+                </div>
+                <div style={{ flex: 1, minHeight: "90px", width: "100%" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={
+                      (MOCK_HISTORY[a.validatorName.replace("Validator ", "")] || [50,55,60,65,70,75,80])
+                        .map((v, i) => ({ month: ["J","F","M","A","M","J","J"][i], perf: v }))
+                    }>
+                      <YAxis domain={["auto", "auto"]} hide />
+                      <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px" }} />
+                      <Line
+                        type="monotone"
+                        dataKey="perf"
+                        stroke={COLORS[i]}
+                        strokeWidth={3}
+                        dot={{ fill: "#1a1a3e", strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, fill: COLORS[i] }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ textAlign: "center", fontSize: "0.7rem", color: "var(--text-muted)" }}>Tap to flip back</div>
+              </div>
+            );
+
+            return (
+              <StaggerItem key={a.validatorName}>
+                <div style={{ width: "100%", height: "160px" }}>
+                  <FlipCard
+                    front={frontSide}
+                    back={backSide}
+                    isFlipped={isFlipped}
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                </div>
+              </StaggerItem>
+            );
+          })}
         </StaggerContainer>
       </motion.div>
 
@@ -249,45 +306,6 @@ export default function AllocationPage() {
         </motion.div>
       </div>
 
-      {/* Validator Detail Modal */}
-      <AnimatePresence>
-        {selectedValidator && (
-          <motion.div
-            className="card section"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.4 }}
-            style={{ overflow: "hidden" }}
-          >
-            <div className="section-header">
-              <h3 className="section-title">📈 {selectedValidator} — Historical Performance</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => setSelectedValidator(null)}>✕ Close</button>
-            </div>
-            <div className="chart-container chart-container-sm">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={
-                  (MOCK_HISTORY[selectedValidator.replace("Validator ", "")] || [50,55,60,65,70,75,80])
-                    .map((v, i) => ({ month: ["Jan","Feb","Mar","Apr","May","Jun","Jul"][i], perf: v }))
-                }>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                  <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} domain={[40, 100]} />
-                  <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }} />
-                  <Line
-                    type="monotone"
-                    dataKey="perf"
-                    stroke={COLORS[allocationData?.allocations?.findIndex((a: any) => a.validatorName === selectedValidator) || 0]}
-                    strokeWidth={3}
-                    dot={{ fill: "#1a1a3e", strokeWidth: 2, r: 5 }}
-                    activeDot={{ r: 7, fill: "var(--neon-green)" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

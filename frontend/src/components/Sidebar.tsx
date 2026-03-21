@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: "📊", href: "/", badge: null },
@@ -72,25 +73,16 @@ export default function Sidebar() {
         ))}
       </div>
 
-      {/* Wallet Status */}
-      <div
-        className="card"
-        style={{
-          padding: "14px 16px",
-          background: "var(--neon-green-dim)",
-          border: "1px solid rgba(202, 255, 51, 0.1)",
-          marginTop: "12px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-          <span className="status-dot active"></span>
-          <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--neon-green)" }}>
-            Connected
-          </span>
-        </div>
-        <div className="mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-          0x1a2B...9cD4
-        </div>
+      {/* Wallet Connection */}
+      <div style={{ marginTop: "12px", display: "flex", justifyContent: "center" }}>
+        <ConnectButton
+          showBalance={false}
+          chainStatus="icon"
+          accountStatus={{
+            smallScreen: "avatar",
+            largeScreen: "full",
+          }}
+        />
       </div>
     </aside>
   );

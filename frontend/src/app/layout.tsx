@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import { Providers } from "@/providers/Providers";
 
 export const metadata: Metadata = {
   title: "StakeFlow — Risk-Aware Restaking Protocol",
@@ -17,12 +18,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="app-layout">
-          <Sidebar />
-          <main className="main-content" style={{ position: "relative", zIndex: 1 }}>
-            {children}
-          </main>
-        </div>
+        <Providers>
+          <div className="app-layout">
+            <Sidebar />
+            <main className="main-content" style={{ position: "relative", zIndex: 1 }}>
+              {children}
+            </main>
+          </div>
+        </Providers>
       </body>
     </html>
   );
