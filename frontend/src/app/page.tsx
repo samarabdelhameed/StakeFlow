@@ -1,689 +1,352 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import {
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+} from "recharts";
+import {
+  AnimatedCounter, TiltCard, RiskGauge, Sparkline,
+  StaggerContainer, StaggerItem,
+} from "@/components/UIComponents";
 
-interface Allocation {
-  validator: string;
-  validatorName: string;
-  percentage: number;
-  amount: string;
-  score: number;
-  amountETH: number;
-  percentageHuman: string;
-}
-
-interface AllocationData {
-  totalAmount: string;
-  totalAmountETH: number;
-  allocations: Allocation[];
-  timestamp: number;
-  strategy: string;
-}
-
-const COLORS = ["#6366f1", "#06b6d4", "#a855f7", "#10b981", "#f59e0b"];
+const Background3D = dynamic(() => import("@/components/Background3D"), { ssr: false });
 
 const API_BASE = "http://localhost:8080";
 
-export default function Dashboard() {
-  const [amount, setAmount] = useState("10");
-  const [allocationData, setAllocationData] = useState<AllocationData | null>(
-    null
-  );
-  const [loading, setLoading] = useState(false);
-  const [vaultInfo, setVaultInfo] = useState<any>(null);
-  const [validators, setValidators] = useState<any[]>([]);
-  const [animatedTVL, setAnimatedTVL] = useState(0);
+// Mock TVL History
+const tvlHistory = [
+  { month: "Jan", tvl: 8200 }, { month: "Feb", tvl: 9100 },
+  { month: "Mar", tvl: 10400 }, { month: "Apr", tvl: 11800 },
+  { month: "May", tvl: 13200 }, { month: "Jun", tvl: 14500 },
+  { month: "Jul", tvl: 15750 },
+];
 
-  // Fetch initial data
+// Mock staking rewards
+const rewardsData = [
+  { month: "Jan", rewards: 120 }, { month: "Feb", rewards: 180 },
+  { month: "Mar", rewards: 250 }, { month: "Apr", rewards: 310 },
+  { month: "May", rewards: 420 }, { month: "Jun", rewards: 380 },
+  { month: "Jul", rewards: 490 },
+];
+
+const COLORS = ["#CAFF33", "#8B5CF6", "#06D6A0", "#FF4D6A", "#FFB800"];
+
+export default function Dashboard() {
+  const [validators, setValidators] = useState<any[]>([]);
+  const [allocationData, setAllocationData] = useState<any>(null);
+
   useEffect(() => {
-    fetchVaultInfo();
-    fetchValidators();
-    fetchAllocation("10");
+    fetchData();
   }, []);
 
-  // Animate TVL counter
-  useEffect(() => {
-    if (vaultInfo) {
-      const target = parseFloat(vaultInfo.totalValueLockedETH);
-      const duration = 2000;
-      const start = Date.now();
-      const animate = () => {
-        const progress = Math.min((Date.now() - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        setAnimatedTVL(target * eased);
-        if (progress < 1) requestAnimationFrame(animate);
-      };
-      animate();
-    }
-  }, [vaultInfo]);
-
-  async function fetchVaultInfo() {
+  async function fetchData() {
     try {
-      const res = await fetch(`${API_BASE}/api/vault/info`);
-      const data = await res.json();
-      setVaultInfo(data);
-    } catch {
-      // Use mock data if backend is down
-      setVaultInfo({
-        totalValueLockedETH: "15750.00",
-        totalDepositors: 342,
-        averageAPY: "5.2%",
-        status: "🟢 Active",
-      });
-    }
-  }
-
-  async function fetchValidators() {
-    try {
-      const res = await fetch(`${API_BASE}/api/validators`);
-      const data = await res.json();
-      setValidators(data.validators || []);
+      const [vRes, aRes] = await Promise.all([
+        fetch(`${API_BASE}/api/validators`),
+        fetch(`${API_BASE}/api/allocation/simulate?amount=100`),
+      ]);
+      const vData = await vRes.json();
+      const aData = await aRes.json();
+      setValidators(vData.validators || []);
+      setAllocationData(aData);
     } catch {
       setValidators([
-        {
-          name: "Validator Alpha",
-          address: "0x1111...1111",
-          performancePercent: "85.00%",
-          commissionPercent: "5.00%",
-          totalStakedETH: "1000.00",
-          isActive: true,
-        },
-        {
-          name: "Validator Beta",
-          address: "0x2222...2222",
-          performancePercent: "92.00%",
-          commissionPercent: "3.00%",
-          totalStakedETH: "750.00",
-          isActive: true,
-        },
-        {
-          name: "Validator Gamma",
-          address: "0x3333...3333",
-          performancePercent: "70.00%",
-          commissionPercent: "7.00%",
-          totalStakedETH: "500.00",
-          isActive: true,
-        },
-        {
-          name: "Validator Delta",
-          address: "0x4444...4444",
-          performancePercent: "65.00%",
-          commissionPercent: "2.00%",
-          totalStakedETH: "300.00",
-          isActive: true,
-        },
-        {
-          name: "Validator Epsilon",
-          address: "0x5555...5555",
-          performancePercent: "98.00%",
-          commissionPercent: "8.00%",
-          totalStakedETH: "200.00",
-          isActive: true,
-        },
+        { name: "Validator Alpha", performancePercent: "85.00%", commissionPercent: "5.00%", totalStakedETH: "1000.00", isActive: true },
+        { name: "Validator Beta", performancePercent: "92.00%", commissionPercent: "3.00%", totalStakedETH: "750.00", isActive: true },
+        { name: "Validator Gamma", performancePercent: "70.00%", commissionPercent: "7.00%", totalStakedETH: "500.00", isActive: true },
+        { name: "Validator Delta", performancePercent: "65.00%", commissionPercent: "2.00%", totalStakedETH: "300.00", isActive: true },
+        { name: "Validator Epsilon", performancePercent: "98.00%", commissionPercent: "8.00%", totalStakedETH: "200.00", isActive: true },
       ]);
-    }
-  }
-
-  async function fetchAllocation(amountETH: string) {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/allocation/simulate?amount=${amountETH}`
-      );
-      const data = await res.json();
-      setAllocationData(data);
-    } catch {
-      // Mock allocation data
       setAllocationData({
-        totalAmount: "10000000000000000000",
-        totalAmountETH: parseFloat(amountETH),
         allocations: [
-          {
-            validator: "0x5555",
-            validatorName: "Validator Epsilon",
-            percentage: 2192,
-            amount: "2192000000000000000",
-            score: 9560,
-            amountETH: 2.192,
-            percentageHuman: "21.92%",
-          },
-          {
-            validator: "0x2222",
-            validatorName: "Validator Beta",
-            percentage: 2155,
-            amount: "2155000000000000000",
-            score: 9400,
-            amountETH: 2.155,
-            percentageHuman: "21.55%",
-          },
-          {
-            validator: "0x1111",
-            validatorName: "Validator Alpha",
-            percentage: 2041,
-            amount: "2041000000000000000",
-            score: 8900,
-            amountETH: 2.041,
-            percentageHuman: "20.41%",
-          },
-          {
-            validator: "0x3333",
-            validatorName: "Validator Gamma",
-            percentage: 1816,
-            amount: "1816000000000000000",
-            score: 7920,
-            amountETH: 1.816,
-            percentageHuman: "18.16%",
-          },
-          {
-            validator: "0x4444",
-            validatorName: "Validator Delta",
-            percentage: 1793,
-            amount: "1793000000000000000",
-            score: 7820,
-            amountETH: 1.793,
-            percentageHuman: "17.93%",
-          },
+          { validatorName: "Epsilon", percentageHuman: "21.92%", amountETH: 21.92, score: 9560 },
+          { validatorName: "Beta", percentageHuman: "21.55%", amountETH: 21.55, score: 9400 },
+          { validatorName: "Alpha", percentageHuman: "20.41%", amountETH: 20.41, score: 8900 },
+          { validatorName: "Gamma", percentageHuman: "18.16%", amountETH: 18.16, score: 7920 },
+          { validatorName: "Delta", percentageHuman: "17.93%", amountETH: 17.93, score: 7820 },
         ],
-        timestamp: Date.now(),
-        strategy: "weighted_score",
       });
-    }
-    setLoading(false);
-  }
-
-  function handleCalculate() {
-    if (parseFloat(amount) > 0) {
-      fetchAllocation(amount);
     }
   }
 
   return (
-    <main className="container">
-      {/* ═══ Hero Stats ═══ */}
-      <section className="section">
-        <div style={{ textAlign: "center", marginBottom: "48px" }}>
-          <h1
-            className="gradient-text fade-in-up"
-            style={{ fontSize: "3rem", marginBottom: "12px" }}
-          >
-            Intelligent Restaking
-          </h1>
-          <p
-            className="fade-in-up fade-in-up-delay-1"
-            style={{
-              color: "var(--text-secondary)",
-              fontSize: "1.1rem",
-              maxWidth: "600px",
-              margin: "0 auto",
-            }}
-          >
-            Maximize your ETH rewards with AI-powered allocation across
-            top-performing validators
-          </p>
-        </div>
+    <>
+      <Background3D />
 
-        <div className="grid-4" id="stats-overview">
-          <div className="card card-glow stat-card fade-in-up fade-in-up-delay-1">
+      {/* Top Bar */}
+      <div className="topbar">
+        <div className="topbar-left">
+          <h1>Dashboard</h1>
+          <p>Real-time overview of your restaking portfolio</p>
+        </div>
+        <div className="topbar-right">
+          <div className="tabs">
+            <button className="tab active">All</button>
+            <button className="tab">Week</button>
+            <button className="tab">Month</button>
+            <button className="tab">Year</button>
+          </div>
+          <button className="btn btn-primary btn-sm">
+            <Link href="/deposit" style={{ color: "inherit" }}>⚡ Deposit</Link>
+          </button>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
+      <StaggerContainer className="grid-4 section">
+        <StaggerItem>
+          <TiltCard className="stat-card" glowColor="rgba(202, 255, 51, 0.08)">
+            <div className="stat-icon" style={{ background: "var(--neon-green-dim)" }}>💰</div>
             <span className="stat-label">Total Value Locked</span>
-            <span className="stat-value gradient-text mono">
-              {animatedTVL.toLocaleString("en-US", {
-                maximumFractionDigits: 0,
-              })}{" "}
-              ETH
+            <span className="stat-value mono" style={{ color: "var(--neon-green)" }}>
+              <AnimatedCounter value={15750} suffix=" ETH" />
             </span>
-            <span className="stat-change positive">↑ 12.5% this week</span>
-          </div>
+            <span className="stat-change positive">↑ 12.5%</span>
+          </TiltCard>
+        </StaggerItem>
 
-          <div className="card card-glow stat-card fade-in-up fade-in-up-delay-2">
+        <StaggerItem>
+          <TiltCard className="stat-card" glowColor="rgba(6, 214, 160, 0.08)">
+            <div className="stat-icon" style={{ background: "var(--cyan-dim)" }}>📈</div>
             <span className="stat-label">Average APY</span>
-            <span
-              className="stat-value"
-              style={{ color: "var(--accent-emerald)" }}
-            >
-              {vaultInfo?.averageAPY || "5.2%"}
+            <span className="stat-value" style={{ color: "var(--cyan)" }}>
+              <AnimatedCounter value={5.2} decimals={1} suffix="%" />
             </span>
-            <span className="stat-change positive">↑ 0.3% from last week</span>
-          </div>
+            <span className="stat-change positive">↑ 0.3%</span>
+          </TiltCard>
+        </StaggerItem>
 
-          <div className="card card-glow stat-card fade-in-up fade-in-up-delay-3">
+        <StaggerItem>
+          <TiltCard className="stat-card" glowColor="rgba(139, 92, 246, 0.08)">
+            <div className="stat-icon" style={{ background: "var(--purple-dim)" }}>⚡</div>
             <span className="stat-label">Active Validators</span>
-            <span
-              className="stat-value"
-              style={{ color: "var(--accent-cyan)" }}
-            >
-              {validators.length || 5}
+            <span className="stat-value" style={{ color: "var(--purple)" }}>
+              <AnimatedCounter value={5} />
             </span>
-            <span className="badge badge-success">
-              <span className="status-dot active"></span>All Online
+            <span className="badge badge-green" style={{ width: "fit-content" }}>
+              <span className="status-dot active" /> All Online
             </span>
-          </div>
+          </TiltCard>
+        </StaggerItem>
 
-          <div className="card card-glow stat-card fade-in-up fade-in-up-delay-4">
-            <span className="stat-label">Total Depositors</span>
-            <span
-              className="stat-value"
-              style={{ color: "var(--accent-purple)" }}
-            >
-              {vaultInfo?.totalDepositors || 342}
-            </span>
-            <span className="stat-change positive">↑ 48 new this week</span>
-          </div>
-        </div>
-      </section>
+        <StaggerItem>
+          <TiltCard className="stat-card" glowColor="rgba(255, 77, 106, 0.06)">
+            <div className="stat-icon" style={{ background: "var(--amber-dim)" }}>🛡️</div>
+            <span className="stat-label">Risk Level</span>
+            <RiskGauge value={32} color="var(--neon-green)" size={90} label="Low Risk" />
+          </TiltCard>
+        </StaggerItem>
+      </StaggerContainer>
 
-      {/* ═══ Allocation Calculator ═══ */}
-      <section className="section" id="allocation">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">🧠 Smart Allocation</h2>
-            <p className="section-subtitle">
-              Enter your amount to see the optimal distribution
-            </p>
-          </div>
-          <span className="badge badge-info">
-            Strategy: Weighted Score Algorithm
-          </span>
-        </div>
-
-        <div className="grid-2" style={{ gap: "32px" }}>
-          {/* Input Card */}
+      {/* Charts Row */}
+      <div className="grid-2 section">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+        >
           <div className="card">
-            <div className="input-container" style={{ marginBottom: "20px" }}>
-              <label className="input-label" htmlFor="stake-amount">
-                Stake Amount
-              </label>
-              <div style={{ position: "relative" }}>
-                <input
-                  id="stake-amount"
-                  className="input mono"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Enter ETH amount"
-                  min="0.01"
-                  step="0.1"
-                  style={{ paddingRight: "60px" }}
-                />
-                <span className="input-suffix">ETH</span>
-              </div>
+            <div className="section-header">
+              <h3 className="section-title">📊 TVL Growth</h3>
+              <span className="badge badge-green">+91.2%</span>
+            </div>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={tvlHistory}>
+                  <defs>
+                    <linearGradient id="tvlGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#CAFF33" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#CAFF33" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                  <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                  <Tooltip
+                    contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }}
+                    labelStyle={{ color: "#F1F5F9" }}
+                    itemStyle={{ color: "#CAFF33" }}
+                  />
+                  <Area type="monotone" dataKey="tvl" stroke="#CAFF33" strokeWidth={2.5} fill="url(#tvlGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+        >
+          <div className="card">
+            <div className="section-header">
+              <h3 className="section-title">💰 Staking Rewards</h3>
+              <span className="badge badge-purple">Monthly</span>
+            </div>
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={rewardsData} barCategoryGap="30%">
+                  <defs>
+                    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#CAFF33" />
+                      <stop offset="100%" stopColor="#8B5CF6" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                  <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }}
+                    labelStyle={{ color: "#F1F5F9" }}
+                  />
+                  <Bar dataKey="rewards" fill="url(#barGrad)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Allocation Preview + Top Validators */}
+      <div className="grid-2 section">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6, duration: 0.6 }}
+        >
+          <div className="card">
+            <div className="section-header">
+              <h3 className="section-title">🧠 Current Allocation</h3>
+              <Link href="/allocation" className="btn btn-ghost btn-sm">View Details →</Link>
             </div>
 
-            <button
-              className="btn btn-primary btn-lg"
-              onClick={handleCalculate}
-              disabled={loading}
-              id="calculate-btn"
-              style={{ width: "100%" }}
-            >
-              {loading ? (
-                <>
-                  <span className="shimmer" style={{ width: 20, height: 20, borderRadius: "50%", display: "inline-block" }}></span>
-                  Calculating...
-                </>
-              ) : (
-                <>🚀 Calculate Optimal Allocation</>
-              )}
-            </button>
-
-            {allocationData && (
-              <div style={{ marginTop: "24px" }}>
-                <div className="divider" />
+            {/* Allocation Bar */}
+            <div className="alloc-bar" style={{ marginBottom: "20px", height: "14px" }}>
+              {allocationData?.allocations?.map((a: any, i: number) => (
                 <div
+                  key={i}
+                  className="alloc-segment"
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "8px",
+                    width: a.percentageHuman,
+                    backgroundColor: COLORS[i % COLORS.length],
                   }}
-                >
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                    Strategy
-                  </span>
-                  <span className="mono" style={{ fontSize: "0.85rem" }}>
-                    {allocationData.strategy}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                    Total
-                  </span>
-                  <span
-                    className="mono"
-                    style={{
-                      fontSize: "0.85rem",
-                      color: "var(--accent-emerald)",
-                    }}
-                  >
-                    {allocationData.totalAmountETH} ETH
-                  </span>
-                </div>
+                />
+              ))}
+            </div>
 
-                {/* Allocation Bar */}
-                <div className="allocation-bar" style={{ marginBottom: "16px" }}>
-                  {allocationData.allocations.map((alloc, i) => (
-                    <div
-                      key={alloc.validator}
-                      className="allocation-segment tooltip"
-                      data-tooltip={`${alloc.validatorName}: ${alloc.percentageHuman}`}
-                      style={{
-                        width: `${alloc.percentage / 100}%`,
-                        backgroundColor: COLORS[i % COLORS.length],
-                      }}
-                    />
-                  ))}
+            {/* Legend */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {allocationData?.allocations?.map((a: any, i: number) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{
+                      width: "12px", height: "12px", borderRadius: "4px",
+                      backgroundColor: COLORS[i % COLORS.length],
+                    }} />
+                    <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>{a.validatorName}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    <span className="mono" style={{ fontSize: "0.85rem", color: COLORS[i % COLORS.length] }}>
+                      {a.percentageHuman}
+                    </span>
+                    <span className="mono" style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                      {a.amountETH?.toFixed(2)} ETH
+                    </span>
+                  </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
 
-                {/* Legend */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-                  {allocationData.allocations.map((alloc, i) => (
-                    <div
-                      key={alloc.validator}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        fontSize: "0.8rem",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "10px",
-                          height: "10px",
-                          borderRadius: "3px",
-                          backgroundColor: COLORS[i % COLORS.length],
-                        }}
-                      />
-                      <span style={{ color: "var(--text-muted)" }}>
-                        {alloc.validatorName}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.7, duration: 0.6 }}
+        >
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border-card)" }}>
+              <h3 className="section-title">⚡ Top Validators</h3>
+            </div>
+            {validators.slice(0, 4).map((v, i) => {
+              const perf = parseFloat(v.performancePercent || "0");
+              return (
+                <div key={i} className="validator-card" style={{
+                  margin: "8px 12px", borderRadius: "var(--radius-md)",
+                }}>
+                  <div className="validator-avatar" style={{
+                    background: `linear-gradient(135deg, ${COLORS[i]}22, ${COLORS[i]}08)`,
+                    border: `1px solid ${COLORS[i]}33`,
+                    color: COLORS[i],
+                  }}>
+                    {v.name?.charAt(v.name.lastIndexOf(" ") + 1)}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.9rem", marginBottom: "4px" }}>
+                      {v.name}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div className="progress-bar" style={{ width: "60px" }}>
+                        <div className="progress-fill" style={{
+                          width: `${perf}%`,
+                          background: `linear-gradient(90deg, ${COLORS[i]}, ${COLORS[(i+1) % COLORS.length]})`,
+                        }} />
+                      </div>
+                      <span className="mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        {v.performancePercent}
                       </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Allocation Results */}
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            <div
-              style={{
-                padding: "20px 24px",
-                borderBottom: "1px solid var(--border-default)",
-              }}
-            >
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>
-                Allocation Breakdown
-              </h3>
-            </div>
-
-            {allocationData ? (
-              <div>
-                {allocationData.allocations.map((alloc, i) => (
-                  <div
-                    key={alloc.validator}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "16px 24px",
-                      borderBottom: "1px solid var(--border-default)",
-                      transition: "background var(--transition-fast)",
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = "var(--bg-hover)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
-                  >
-                    <div
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        borderRadius: "var(--radius-sm)",
-                        background: `linear-gradient(135deg, ${COLORS[i % COLORS.length]}33, ${COLORS[i % COLORS.length]}11)`,
-                        border: `1px solid ${COLORS[i % COLORS.length]}44`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginRight: "16px",
-                        fontSize: "1.1rem",
-                        fontWeight: 700,
-                        color: COLORS[i % COLORS.length],
-                      }}
-                    >
-                      {i + 1}
-                    </div>
-
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: "0.95rem",
-                          marginBottom: "2px",
-                        }}
-                      >
-                        {alloc.validatorName}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.8rem",
-                          color: "var(--text-muted)",
-                        }}
-                        className="mono"
-                      >
-                        Score: {alloc.score.toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div style={{ textAlign: "right" }}>
-                      <div className="mono" style={{ fontWeight: 600 }}>
-                        {alloc.amountETH.toFixed(4)} ETH
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.8rem",
-                          color: COLORS[i % COLORS.length],
-                          fontWeight: 600,
-                        }}
-                      >
-                        {alloc.percentageHuman}
-                      </div>
-                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div
-                style={{
-                  padding: "48px 24px",
-                  textAlign: "center",
-                  color: "var(--text-muted)",
-                }}
-              >
-                <div style={{ fontSize: "2rem", marginBottom: "8px" }}>📊</div>
-                Enter an amount and click calculate
-              </div>
-            )}
+                  <div style={{ textAlign: "right" }}>
+                    <div className="mono" style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+                      {v.totalStakedETH} ETH
+                    </div>
+                    <Sparkline data={[3, 5, 4, 7, 6, 8, 9].map(d => d + i)} color={COLORS[i]} width={60} height={20} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      </section>
+        </motion.div>
+      </div>
 
-      {/* ═══ Validators Table ═══ */}
-      <section className="section" id="validators">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">⚡ Active Validators</h2>
-            <p className="section-subtitle">
-              Real-time performance and commission data
-            </p>
-          </div>
-          <span className="badge badge-success">
-            <span className="status-dot active"></span>
-            {validators.length} Active
-          </span>
-        </div>
-
-        <div className="card" style={{ padding: 0 }}>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Validator</th>
-                  <th>Status</th>
-                  <th>Performance</th>
-                  <th>Commission</th>
-                  <th>Total Staked</th>
-                  <th>Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {validators.map((v, i) => {
-                  const perf = parseFloat(v.performancePercent || "0");
-                  return (
-                    <tr key={i}>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                          <div
-                            style={{
-                              width: "36px",
-                              height: "36px",
-                              borderRadius: "var(--radius-sm)",
-                              background: `linear-gradient(135deg, ${COLORS[i % COLORS.length]}33, ${COLORS[i % COLORS.length]}11)`,
-                              border: `1px solid ${COLORS[i % COLORS.length]}44`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "0.85rem",
-                              fontWeight: 700,
-                              color: COLORS[i % COLORS.length],
-                            }}
-                          >
-                            {v.name?.charAt(v.name.lastIndexOf(" ") + 1) || "V"}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{v.name}</div>
-                            <div
-                              className="mono"
-                              style={{
-                                fontSize: "0.75rem",
-                                color: "var(--text-muted)",
-                              }}
-                            >
-                              {v.address?.slice(0, 6)}...{v.address?.slice(-4)}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`badge ${v.isActive ? "badge-success" : "badge-danger"}`}>
-                          <span className={`status-dot ${v.isActive ? "active" : "inactive"}`}></span>
-                          {v.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div className="progress-bar" style={{ width: "80px" }}>
-                            <div
-                              className="progress-fill"
-                              style={{
-                                width: `${perf}%`,
-                                background:
-                                  perf > 80
-                                    ? "linear-gradient(90deg, var(--accent-emerald), var(--accent-cyan))"
-                                    : perf > 60
-                                    ? "linear-gradient(90deg, var(--accent-amber), var(--accent-emerald))"
-                                    : "linear-gradient(90deg, var(--accent-rose), var(--accent-amber))",
-                              }}
-                            />
-                          </div>
-                          <span className="mono" style={{ fontSize: "0.85rem" }}>
-                            {v.performancePercent}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="mono">{v.commissionPercent}</span>
-                      </td>
-                      <td>
-                        <span className="mono" style={{ fontWeight: 600 }}>
-                          {v.totalStakedETH} ETH
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className="mono"
-                          style={{
-                            fontWeight: 700,
-                            color: COLORS[i % COLORS.length],
-                          }}
-                        >
-                          {((perf / 100) * 10000).toFixed(0)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Protocol Info ═══ */}
-      <section className="section" style={{ paddingBottom: "80px" }}>
-        <div className="grid-3">
-          <div className="card card-glow" style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🔒</div>
-            <h4 style={{ marginBottom: "8px" }}>Secure by Design</h4>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: "1.6" }}>
-              Built with OpenZeppelin contracts, audited patterns, and Foundry
-              fuzz testing
-            </p>
-          </div>
-
-          <div className="card card-glow" style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>⚡</div>
-            <h4 style={{ marginBottom: "8px" }}>Lightning Fast</h4>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: "1.6" }}>
-              Powered by Bun runtime & Hono framework for sub-millisecond API
-              responses
-            </p>
-          </div>
-
-          <div className="card card-glow" style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🧠</div>
-            <h4 style={{ marginBottom: "8px" }}>Smart Allocation</h4>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: "1.6" }}>
-              Weighted scoring algorithm optimizes returns based on performance
-              & commission
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Footer ═══ */}
-      <footer
-        style={{
-          borderTop: "1px solid var(--glass-border)",
-          padding: "32px 0",
-          textAlign: "center",
-          color: "var(--text-muted)",
-          fontSize: "0.85rem",
-        }}
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.6 }}
+        className="grid-3 section"
       >
-        <p>
-          <span className="gradient-text" style={{ fontWeight: 700 }}>
-            StakeFlow
-          </span>{" "}
-          — Built with Foundry + Bun + Next.js • 2026
-        </p>
-      </footer>
-    </main>
+        <Link href="/deposit">
+          <TiltCard className="card-glow-green" style={{ textAlign: "center", cursor: "pointer" }} glowColor="rgba(202, 255, 51, 0.06)">
+            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>💎</div>
+            <h4 style={{ marginBottom: "6px" }}>Deposit & Stake</h4>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+              Deposit ETH and let AI optimize your allocation
+            </p>
+          </TiltCard>
+        </Link>
+
+        <Link href="/allocation">
+          <TiltCard className="card-glow-purple" style={{ textAlign: "center", cursor: "pointer" }} glowColor="rgba(139, 92, 246, 0.06)">
+            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🧠</div>
+            <h4 style={{ marginBottom: "6px" }}>View Allocation</h4>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+              See optimized validator distribution strategy
+            </p>
+          </TiltCard>
+        </Link>
+
+        <Link href="/analytics">
+          <TiltCard style={{ textAlign: "center", cursor: "pointer" }} glowColor="rgba(6, 214, 160, 0.06)">
+            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>📈</div>
+            <h4 style={{ marginBottom: "6px" }}>Analytics</h4>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+              Deep dive into performance metrics & risk
+            </p>
+          </TiltCard>
+        </Link>
+      </motion.div>
+    </>
   );
 }
