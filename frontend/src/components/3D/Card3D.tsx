@@ -2,17 +2,15 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Text } from "@react-three/drei";
-import * as THREE from "three";
 
 // 3D Interactive Card with Hover Effects
 export function Card3D({
   children,
   className = "",
   style = {},
-  glowColor = "#8B5CF6",
+  glowColor = "#CAFF33",
   height = 200,
+  tooltip,
   onClick,
 }: {
   children: React.ReactNode;
@@ -20,43 +18,29 @@ export function Card3D({
   style?: React.CSSProperties;
   glowColor?: string;
   height?: number;
+  tooltip?: string;
   onClick?: () => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setMousePos({ x: x * 100, y: y * 100 });
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    cardRef.current.style.setProperty("--mouse-x", `${x}%`);
+    cardRef.current.style.setProperty("--mouse-y", `${y}%`);
   };
 
   return (
     <motion.div
       ref={cardRef}
-      className={`card-3d ${className}`}
+      className={`card-3d glass-card ${className}`}
       style={{
         ...style,
         height,
-        position: "relative",
-        background: `
-          radial-gradient(circle at ${mousePos.x}% ${mousePos.y}%, 
-            ${glowColor}15, transparent 60%),
-          linear-gradient(135deg, 
-            rgba(26, 26, 62, 0.8) 0%, 
-            rgba(37, 37, 80, 0.6) 100%)
-        `,
-        backdropFilter: "blur(24px)",
-        border: `1px solid ${isHovered ? glowColor + "40" : "rgba(255,255,255,0.1)"}`,
-        borderRadius: "16px",
-        overflow: "hidden",
         cursor: onClick ? "pointer" : "default",
-        boxShadow: isHovered 
-          ? `0 20px 60px ${glowColor}20, 0 0 0 1px ${glowColor}30`
-          : "0 8px 32px rgba(0,0,0,0.3)",
       }}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
@@ -64,77 +48,80 @@ export function Card3D({
       onClick={onClick}
       whileHover={{ 
         scale: 1.02,
-        rotateX: 2,
-        rotateY: 2,
+        z: 20
       }}
       whileTap={{ scale: 0.98 }}
       transition={{ 
         type: "spring", 
-        stiffness: 300, 
-        damping: 20 
+        stiffness: 400, 
+        damping: 30 
       }}
     >
-      {/* Animated Border Gradient */}
-      <motion.div
-        className="card-border-glow"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `conic-gradient(from 0deg, ${glowColor}, transparent, ${glowColor})`,
-          borderRadius: "16px",
-          padding: "1px",
-          opacity: isHovered ? 0.6 : 0,
-        }}
-        animate={{ rotate: isHovered ? 360 : 0 }}
-        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-      >
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            background: "var(--bg-card)",
-            borderRadius: "15px",
-          }}
-        />
-      </motion.div>
-
+      <div className="card-3d-glow" style={{ 
+        background: `radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${glowColor}25 0%, transparent 80%)` 
+      }} />
+      
       {/* Content */}
-      <div style={{ position: "relative", zIndex: 2, padding: "24px", height: "100%" }}>
+      <div className="card-glow-content" style={{ padding: "24px" }}>
         {children}
       </div>
 
       {/* Floating Particles */}
       {isHovered && (
-        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
-          {[...Array(8)].map((_, i) => (
+        <div className="particle-container" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+          {[...Array(6)].map((_, i) => (
             <motion.div
               key={i}
+              className="particle"
               style={{
                 position: "absolute",
                 width: "4px",
                 height: "4px",
-                background: glowColor,
                 borderRadius: "50%",
+                background: glowColor,
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
               }}
               animate={{
-                y: [-20, -40, -20],
-                opacity: [0, 1, 0],
+                y: [-10, -30, -10],
+                opacity: [0, 0.8, 0],
                 scale: [0, 1, 0],
               }}
               transition={{
-                duration: 2,
+                duration: 2.5,
                 repeat: Infinity,
-                delay: i * 0.2,
-                ease: "easeInOut",
+                delay: i * 0.3,
               }}
             />
           ))}
         </div>
+      )}
+
+      {/* Tooltip */}
+      {isHovered && tooltip && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            position: "absolute",
+            bottom: "12px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "var(--bg-secondary)",
+            color: "white",
+            padding: "6px 14px",
+            borderRadius: "8px",
+            fontSize: "0.75rem",
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+            zIndex: 100,
+            border: `1px solid ${glowColor}40`,
+            boxShadow: `0 8px 24px ${glowColor}20`,
+            fontWeight: "600"
+          }}
+        >
+          {tooltip}
+        </motion.div>
       )}
     </motion.div>
   );
@@ -150,6 +137,7 @@ export function StatsCard3D({
   changeType = "positive",
   icon,
   color = "#CAFF33",
+  tooltip,
 }: {
   title: string;
   value: number;
@@ -159,6 +147,7 @@ export function StatsCard3D({
   changeType?: "positive" | "negative" | "neutral";
   icon?: string;
   color?: string;
+  tooltip?: string;
 }) {
   const [displayValue, setDisplayValue] = useState(0);
 
@@ -167,7 +156,7 @@ export function StatsCard3D({
     const start = Date.now();
     const animate = () => {
       const progress = Math.min((Date.now() - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
+      const eased = 1 - Math.pow(1 - progress, 4); // Quartic ease out
       setDisplayValue(value * eased);
       if (progress < 1) requestAnimationFrame(animate);
     };
@@ -181,36 +170,50 @@ export function StatsCard3D({
   }[changeType];
 
   return (
-    <Card3D glowColor={color} height={160}>
+    <Card3D glowColor={color} height={180} tooltip={tooltip}>
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-          <h4 style={{ color: "var(--text-secondary)", fontSize: "0.9rem", fontWeight: 500 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+          <h4 style={{ color: "var(--text-dim)", fontSize: "0.85rem", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             {title}
           </h4>
           {icon && (
-            <span style={{ fontSize: "1.5rem", opacity: 0.8 }}>
+            <div style={{ 
+              width: "36px", 
+              height: "36px", 
+              borderRadius: "10px", 
+              background: `${color}15`, 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center",
+              fontSize: "1.2rem",
+              border: `1px solid ${color}33`,
+              boxShadow: `0 0 15px ${color}10`
+            }}>
               {icon}
-            </span>
+            </div>
           )}
         </div>
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
           <motion.div
             style={{
-              fontSize: "2.2rem",
-              fontWeight: 800,
-              color: color,
-              fontFamily: "JetBrains Mono",
+              fontSize: "2.5rem",
+              fontWeight: "900",
+              color: "white",
+              fontFamily: "Outfit",
               marginBottom: "8px",
+              letterSpacing: "-0.02em"
             }}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.6 }}
           >
-            {prefix}{displayValue.toLocaleString("en-US", { 
-              minimumFractionDigits: suffix === "ETH" ? 2 : 0,
-              maximumFractionDigits: suffix === "ETH" ? 4 : 0,
-            })}{suffix}
+            <span style={{ color: color, marginRight: "4px" }}>{prefix}</span>
+            {displayValue.toLocaleString("en-US", { 
+              minimumFractionDigits: suffix === " ETH" ? (value < 0.1 ? 6 : 4) : 1,
+              maximumFractionDigits: suffix === " ETH" ? (value < 0.1 ? 6 : 4) : 1,
+            })}
+            <span style={{ fontSize: "1rem", color: "var(--text-dim)", marginLeft: "4px", fontWeight: "600" }}>{suffix}</span>
           </motion.div>
 
           {change !== undefined && (
@@ -219,16 +222,28 @@ export function StatsCard3D({
                 display: "flex",
                 alignItems: "center",
                 gap: "6px",
-                fontSize: "0.85rem",
+                fontSize: "0.9rem",
                 color: changeColor,
-                fontWeight: 600,
+                fontWeight: "700",
               }}
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.3 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
             >
-              <span>{changeType === "positive" ? "↗" : changeType === "negative" ? "↘" : "→"}</span>
+              <div style={{ 
+                width: "20px", 
+                height: "20px", 
+                borderRadius: "50%", 
+                background: `${changeColor}15`, 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                fontSize: "0.7rem"
+              }}>
+                {changeType === "positive" ? "↗" : changeType === "negative" ? "↘" : "→"}
+              </div>
               {Math.abs(change).toFixed(1)}%
+              <span style={{ color: "var(--text-dark)", fontWeight: "500", fontSize: "0.8rem" }}>vs last week</span>
             </motion.div>
           )}
         </div>
@@ -255,8 +270,7 @@ export function Button3D({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const [isPressed, setIsPressed] = useState(false);
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number }>>([]);
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; tx: number; ty: number }>>([]);
 
   const handleClick = (e: React.MouseEvent) => {
     if (disabled || !onClick) return;
@@ -265,101 +279,107 @@ export function Button3D({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    // Create particles
+    // Create particles for "Burst" effect
     const newParticles = Array.from({ length: 12 }, (_, i) => ({
       id: Date.now() + i,
       x,
       y,
+      tx: (Math.random() - 0.5) * 150,
+      ty: (Math.random() - 0.5) * 150,
     }));
     
     setParticles(newParticles);
-    setIsPressed(true);
     
     setTimeout(() => {
       setParticles([]);
-      setIsPressed(false);
-    }, 600);
+    }, 800);
     
     onClick();
   };
 
-  const variants = {
-    primary: {
-      background: "linear-gradient(135deg, #CAFF33, #8B5CF6)",
-      color: "#0d0d1a",
-      border: "none",
-    },
-    secondary: {
-      background: "linear-gradient(135deg, #8B5CF6, #06D6A0)",
-      color: "#F1F5F9",
-      border: "none",
-    },
-    outline: {
-      background: "transparent",
-      color: "#CAFF33",
-      border: "2px solid #CAFF33",
-    },
+  const btnClass = variant === "primary" ? "btn-3d-premium" : "btn";
+  
+  const customStyles: React.CSSProperties = {
+    ...style,
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.5 : 1,
   };
 
-  const sizes = {
-    sm: { padding: "8px 16px", fontSize: "0.85rem" },
-    md: { padding: "12px 24px", fontSize: "0.95rem" },
-    lg: { padding: "16px 32px", fontSize: "1.1rem" },
+  if (variant === "secondary") {
+    customStyles.background = "var(--gradient-surface)";
+    customStyles.color = "white";
+    customStyles.border = "1px solid var(--glass-border)";
+    customStyles.backdropFilter = "blur(10px)";
+  } else if (variant === "outline") {
+    customStyles.background = "transparent";
+    customStyles.color = "var(--neon-green)";
+    customStyles.border = "2px solid var(--neon-green)";
+    customStyles.boxShadow = "none";
+  }
+
+  const sizeStyles = {
+    sm: { padding: "10px 20px", fontSize: "0.80rem" },
+    md: { padding: "14px 28px", fontSize: "0.95rem" },
+    lg: { padding: "18px 36px", fontSize: "1.1rem" },
   };
 
   return (
     <motion.button
-      className={`btn-3d ${className}`}
+      className={`${btnClass} ${className}`}
       style={{
-        ...variants[variant],
-        ...sizes[size],
-        ...style,
+        ...customStyles,
+        ...sizeStyles[size],
         position: "relative",
-        borderRadius: "12px",
-        fontWeight: 600,
-        cursor: disabled ? "not-allowed" : "pointer",
-        overflow: "hidden",
-        opacity: disabled ? 0.5 : 1,
-        boxShadow: variant === "primary" 
-          ? "0 8px 32px rgba(202, 255, 51, 0.3)"
-          : "0 8px 32px rgba(139, 92, 246, 0.2)",
+        overflow: "hidden"
       }}
       onClick={handleClick}
       whileHover={!disabled ? { 
+        translateY: -5,
         scale: 1.05,
-        boxShadow: variant === "primary"
-          ? "0 12px 48px rgba(202, 255, 51, 0.4)"
-          : "0 12px 48px rgba(139, 92, 246, 0.3)",
+        translateZ: 20
       } : {}}
-      whileTap={!disabled ? { scale: 0.95 } : {}}
-      animate={isPressed ? { scale: [1, 1.1, 1] } : {}}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      whileTap={!disabled ? { scale: 0.96 } : {}}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
     >
-      {children}
+      <span style={{ position: "relative", zIndex: 3 }}>{children}</span>
       
-      {/* Particle Effects */}
+      {/* Particle Burst */}
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
+          className="burst-particle"
           style={{
             position: "absolute",
+            width: "4px",
+            height: "4px",
+            borderRadius: "50%",
             left: particle.x,
             top: particle.y,
-            width: "6px",
-            height: "6px",
-            background: variant === "primary" ? "#8B5CF6" : "#CAFF33",
-            borderRadius: "50%",
-            pointerEvents: "none",
+            background: variant === "primary" ? "white" : "var(--neon-green)",
           }}
-          initial={{ scale: 0, x: 0, y: 0 }}
+          initial={{ scale: 1, opacity: 1 }}
           animate={{
-            scale: [0, 1, 0],
-            x: (Math.random() - 0.5) * 100,
-            y: (Math.random() - 0.5) * 100,
+            scale: 0,
+            opacity: 0,
+            x: particle.tx,
+            y: particle.ty,
           }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
         />
       ))}
+
+      {variant === "primary" && (
+        <motion.div style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+          transform: "translateX(-100%)",
+          zIndex: 2,
+        }} 
+        animate={{ translateX: ["-100%", "200%"] }}
+        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
+        />
+      )}
     </motion.button>
   );
 }

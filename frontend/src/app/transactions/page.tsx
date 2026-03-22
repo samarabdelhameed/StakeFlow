@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { StaggerContainer, StaggerItem } from "@/components/UIComponents";
+import { Card3D, StatsCard3D } from "@/components/3D/Card3D";
 
 const MOCK_TXS = [
   { id: 1, type: "Deposit", amount: "10.00 ETH", validator: "Auto-Optimize", status: "Completed", time: "2 min ago", hash: "0xabc1...ef90", risk: "low" },
@@ -16,16 +17,10 @@ const MOCK_TXS = [
 ];
 
 const typeConfig: Record<string, { icon: string; color: string; bg: string }> = {
-  Deposit: { icon: "💎", color: "var(--neon-green)", bg: "var(--neon-green-dim)" },
-  Allocation: { icon: "🧠", color: "var(--purple)", bg: "var(--purple-dim)" },
-  Reward: { icon: "🎁", color: "var(--cyan)", bg: "var(--cyan-dim)" },
-  Withdrawal: { icon: "📤", color: "var(--amber)", bg: "var(--amber-dim)" },
-};
-
-const statusConfig: Record<string, { badge: string; label: string }> = {
-  Pending: { badge: "badge-amber", label: "⏳ Pending" },
-  Confirmed: { badge: "badge-purple", label: "✓ Confirmed" },
-  Completed: { badge: "badge-green", label: "✅ Completed" },
+  Deposit: { icon: "💎", color: "var(--neon-green)", bg: "rgba(202, 255, 51, 0.1)" },
+  Allocation: { icon: "🧠", color: "var(--neon-purple)", bg: "rgba(139, 92, 246, 0.1)" },
+  Reward: { icon: "🎁", color: "var(--neon-cyan)", bg: "rgba(0, 245, 255, 0.1)" },
+  Withdrawal: { icon: "📤", color: "var(--neon-amber)", bg: "rgba(255, 184, 0, 0.1)" },
 };
 
 export default function TransactionsPage() {
@@ -37,128 +32,132 @@ export default function TransactionsPage() {
 
   return (
     <>
-      <div className="topbar">
-        <div className="topbar-left">
-          <h1>📋 Transactions</h1>
-          <p>Live transaction feed & staking history</p>
+      <div className="section-header" style={{ marginBottom: "48px" }}>
+        <div>
+          <h1 className="gradient-text" style={{ fontSize: "3rem", marginBottom: "8px" }}>Transactions</h1>
+          <p style={{ color: "var(--text-dim)", fontSize: "1rem" }}>Live transaction feed & staking history</p>
         </div>
-        <div className="topbar-right">
-          <div className="tabs">
-            {["All", "Deposit", "Allocation", "Reward", "Withdrawal"].map((f) => (
-              <button key={f} className={`tab ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>
-                {f}
-              </button>
-            ))}
-          </div>
+        <div style={{ display: "flex", gap: "8px", background: "rgba(0,0,0,0.3)", padding: "6px", borderRadius: "12px", border: "1px solid var(--glass-border)" }}>
+          {["All", "Deposit", "Allocation", "Reward", "Withdrawal"].map((f) => (
+            <button 
+              key={f} 
+              onClick={() => setFilter(f)}
+              style={{
+                background: filter === f ? "rgba(255,255,255,0.1)" : "transparent",
+                color: filter === f ? "white" : "var(--text-dim)",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+            >
+              {f}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Stats Row */}
       <StaggerContainer className="grid-4 section">
-        {[
-          { label: "Total Deposits", value: "35.00 ETH", icon: "💎", color: "var(--neon-green)" },
-          { label: "Total Rewards", value: "0.192 ETH", icon: "🎁", color: "var(--cyan)" },
-          { label: "Transactions", value: "8", icon: "📜", color: "var(--purple)" },
-          { label: "Avg Gas", value: "0.002 ETH", icon: "⛽", color: "var(--amber)" },
-        ].map((s, i) => (
-          <StaggerItem key={i}>
-            <div className="card stat-card">
-              <div className="stat-icon" style={{ background: `${s.color}15`, fontSize: "1.2rem" }}>
-                {s.icon}
-              </div>
-              <span className="stat-label">{s.label}</span>
-              <span className="mono" style={{ fontSize: "1.3rem", fontWeight: 700, color: s.color }}>
-                {s.value}
-              </span>
-            </div>
-          </StaggerItem>
-        ))}
+        <StaggerItem>
+          <StatsCard3D title="Total Deposits" value={35.00} suffix=" ETH" icon="💎" color="var(--neon-green)" />
+        </StaggerItem>
+        <StaggerItem>
+          <StatsCard3D title="Total Rewards" value={0.192} suffix=" ETH" icon="🎁" color="var(--neon-cyan)" />
+        </StaggerItem>
+        <StaggerItem>
+          <StatsCard3D title="Transactions" value={8} suffix="" icon="📜" color="var(--neon-purple)" />
+        </StaggerItem>
+        <StaggerItem>
+          <StatsCard3D title="Avg Network Fee" value={0.002} suffix=" ETH" icon="⛽" color="var(--neon-amber)" />
+        </StaggerItem>
       </StaggerContainer>
 
-      {/* Transaction Feed */}
-      <motion.div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border-card)" }}>
-          <h3 className="section-title">Transaction Feed</h3>
+      <Card3D glowColor="var(--neon-blue)" style={{ height: "auto" }}>
+        <div className="section-header" style={{ marginBottom: "24px", padding: "0 8px" }}>
+          <h3 style={{ fontSize: "1.2rem" }}>Transaction Feed</h3>
+          <span className="badge-neon" style={{ borderColor: "var(--neon-blue)", color: "var(--neon-blue)", background: "rgba(0, 245, 255, 0.1)" }}>Real-time</span>
         </div>
 
-        <AnimatePresence>
-          {filtered.map((tx, i) => {
-            const config = typeConfig[tx.type] || typeConfig.Deposit;
-            const status = statusConfig[tx.status] || statusConfig.Completed;
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <AnimatePresence mode="popLayout">
+            {filtered.map((tx, i) => {
+              const config = typeConfig[tx.type] || typeConfig.Deposit;
 
-            return (
-              <motion.div
-                key={tx.id}
-                className="tx-card"
-                style={{
-                  margin: "8px 12px",
-                  borderRadius: "var(--radius-md)",
-                }}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ delay: i * 0.05, duration: 0.3 }}
-                whileHover={{ x: 4 }}
-              >
-                <div className="tx-icon" style={{ background: config.bg }}>
-                  {config.icon}
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                    <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{tx.type}</span>
-                    <span className={`badge ${status.badge}`} style={{ fontSize: "0.65rem" }}>
-                      {status.label}
-                    </span>
-                  </div>
-                  <div className="progress-bar" style={{ height: "3px", width: "60%", marginBottom: "4px" }}>
-                    <motion.div
-                      className="progress-fill"
-                      initial={{ width: "0%" }}
-                      animate={{ 
-                        width: tx.status === "Pending" ? "50%" : tx.status === "Confirmed" ? "80%" : "100%" 
-                      }}
-                      transition={{ duration: 1.5, ease: "easeInOut" }}
-                      style={{ background: tx.status === "Completed" ? "var(--neon-green)" : "var(--cyan)" }}
-                    />
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <span className="mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      {tx.hash}
-                    </span>
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
-                      {tx.validator}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ textAlign: "right" }}>
-                  <div className="mono" style={{
-                    fontWeight: 700,
-                    fontSize: "0.95rem",
-                    color: tx.type === "Reward" ? "var(--cyan)" : tx.type === "Withdrawal" ? "var(--amber)" : config.color,
-                  }}>
-                    {tx.amount}
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
-                    {tx.time}
-                  </div>
-                </div>
-
-                <motion.a
-                  href="#"
-                  className="btn btn-ghost btn-sm"
-                  whileHover={{ scale: 1.1 }}
-                  style={{ fontSize: "0.75rem", padding: "6px 10px" }}
-                  title="View on Blockchain"
+              return (
+                <motion.div
+                  key={tx.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  transition={{ delay: i * 0.05, duration: 0.3 }}
+                  className="glass-card"
+                  style={{
+                    padding: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "20px",
+                    background: "var(--bg-secondary)",
+                    border: "1px solid var(--glass-border)",
+                    cursor: "pointer"
+                  }}
+                  whileHover={{ scale: 1.01, backgroundColor: "rgba(255,255,255,0.03)", borderColor: config.color }}
                 >
-                  🔗
-                </motion.a>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </motion.div>
+                  <div style={{ 
+                    width: "48px", height: "48px", borderRadius: "12px", 
+                    background: config.bg, display: "flex", alignItems: "center", 
+                    justifyContent: "center", fontSize: "1.5rem", border: `1px solid ${config.color}30`,
+                    boxShadow: `0 0 15px ${config.bg}`
+                  }}>
+                    {config.icon}
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
+                      <span style={{ fontWeight: 800, fontSize: "1rem", color: "white" }}>{tx.type}</span>
+                      <span className="badge-neon" style={{ 
+                        borderColor: tx.status === "Completed" ? "var(--neon-green)" : tx.status === "Confirmed" ? "var(--neon-purple)" : "var(--neon-amber)",
+                        color: tx.status === "Completed" ? "var(--neon-green)" : tx.status === "Confirmed" ? "var(--neon-purple)" : "var(--neon-amber)",
+                        background: "transparent",
+                        fontSize: "0.65rem"
+                      }}>
+                        {tx.status}
+                      </span>
+                    </div>
+                    
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                      <span className="mono" style={{ fontSize: "0.85rem", color: "var(--text-dim)", display: "flex", gap: "6px", alignItems: "center" }}>
+                        🔗 <span>{tx.hash}</span>
+                      </span>
+                      <span style={{ fontSize: "0.85rem", color: "var(--text-dim)", display: "flex", gap: "6px", alignItems: "center" }}>
+                        🤖 <span>{tx.validator}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: "right", display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div className="mono" style={{ fontWeight: 800, fontSize: "1.1rem", color: config.color }}>
+                      {tx.amount}
+                    </div>
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-dim)", fontWeight: "600" }}>
+                      {tx.time}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+          
+          {filtered.length === 0 && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: "48px", textAlign: "center", color: "var(--text-dim)" }}>
+               <div style={{ fontSize: "3rem", marginBottom: "16px", opacity: 0.5 }}>📭</div>
+               No transactions found for filter: {filter}
+             </motion.div>
+          )}
+        </div>
+      </Card3D>
     </>
   );
 }

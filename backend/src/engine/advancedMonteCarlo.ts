@@ -98,6 +98,7 @@ export function runAdvancedMonteCarlo(
     worstCase: worst,
     VaR: Math.max(0, VaR),
     CVaR: Math.max(0, CVaR),
-    distribution: results.slice(0, 50) // sample for the graph
+    distribution: results.slice(0, 200) // sample for the graph
   };
 }
+

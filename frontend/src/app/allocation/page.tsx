@@ -6,46 +6,56 @@ import Link from "next/link";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, ScatterChart, Scatter, ZAxis, Cell,
-  LineChart, Line, PieChart, Pie,
+  LineChart, Line,
 } from "recharts";
-import { TiltCard, AnimatedCounter, StaggerContainer, StaggerItem, FlipCard } from "@/components/UIComponents";
+import { StaggerContainer, StaggerItem, FlipCard } from "@/components/UIComponents";
+import { Card3D, Button3D } from "@/components/3D/Card3D";
+
+import { useStakeFlow } from "@/hooks/useStakeFlow";
 
 const API_BASE = "http://localhost:8080";
-const COLORS = ["#CAFF33", "#8B5CF6", "#06D6A0", "#FF4D6A", "#FFB800"];
-
-const MOCK_HISTORY: Record<string, number[]> = {
-  Epsilon: [85, 87, 90, 92, 95, 94, 98],
-  Beta: [80, 82, 85, 88, 90, 91, 92],
-  Alpha: [75, 78, 80, 82, 84, 83, 85],
-  Gamma: [60, 62, 65, 68, 70, 69, 70],
-  Delta: [55, 58, 60, 62, 64, 63, 65],
-};
+const COLORS = ["#CAFF33", "#8B5CF6", "#00F5FF", "#FF4D6A", "#FFB800"];
 
 export default function AllocationPage() {
+  const { position } = useStakeFlow();
   const [allocationData, setAllocationData] = useState<any>(null);
-  const [amount, setAmount] = useState("100");
+  const [amount, setAmount] = useState("0.02"); // Default to your current stake for demo context
   const [selectedValidator, setSelectedValidator] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAllocation("100");
-  }, []);
+    // If user has a real position, use that for the initial view
+    const initialAmt = position?.ethValue && parseFloat(position.ethValue) > 0 
+      ? position.ethValue 
+      : "0.02";
+      
+    setAmount(initialAmt);
+    fetchAllocation(initialAmt);
+  }, [position?.ethValue]);
 
   async function fetchAllocation(amountETH: string) {
+    if (!amountETH || parseFloat(amountETH) <= 0) return;
     try {
       const res = await fetch(`${API_BASE}/api/allocation/simulate?amount=${amountETH}`);
+
+      if (!res.ok) throw new Error("Backend is returning an error");
+      
       const data = await res.json();
+      if (!data || !data.allocations || data.allocations.length === 0) {
+        throw new Error("Invalid allocation format");
+      }
+      
       setAllocationData(data);
     } catch {
       setAllocationData({
         totalAmountETH: parseFloat(amountETH),
         allocations: [
-          { validatorName: "Epsilon", percentageHuman: "21.92%", percentage: 2192, amountETH: parseFloat(amountETH) * 0.2192, score: 9560, validator: "0x5555" },
-          { validatorName: "Beta", percentageHuman: "21.55%", percentage: 2155, amountETH: parseFloat(amountETH) * 0.2155, score: 9400, validator: "0x2222" },
-          { validatorName: "Alpha", percentageHuman: "20.41%", percentage: 2041, amountETH: parseFloat(amountETH) * 0.2041, score: 8900, validator: "0x1111" },
-          { validatorName: "Gamma", percentageHuman: "18.16%", percentage: 1816, amountETH: parseFloat(amountETH) * 0.1816, score: 7920, validator: "0x3333" },
-          { validatorName: "Delta", percentageHuman: "17.93%", percentage: 1793, amountETH: parseFloat(amountETH) * 0.1793, score: 7820, validator: "0x4444" },
+          { validatorName: "Epsilon", percentageHuman: "25%", percentage: 2500, amountETH: parseFloat(amountETH) * 0.25, score: 9560, validator: "0x5555" },
+          { validatorName: "Beta", percentageHuman: "20%", percentage: 2000, amountETH: parseFloat(amountETH) * 0.20, score: 9400, validator: "0x2222" },
+          { validatorName: "Alpha", percentageHuman: "20%", percentage: 2000, amountETH: parseFloat(amountETH) * 0.20, score: 8900, validator: "0x1111" },
+          { validatorName: "Gamma", percentageHuman: "15%", percentage: 1500, amountETH: parseFloat(amountETH) * 0.15, score: 7920, validator: "0x3333" },
+          { validatorName: "Delta", percentageHuman: "20%", percentage: 2000, amountETH: parseFloat(amountETH) * 0.20, score: 7820, validator: "0x4444" },
         ],
-        strategy: "weighted_score",
+        strategy: "AI_WEIGHTED_OPTIMIZER",
       });
     }
   }
@@ -55,241 +65,154 @@ export default function AllocationPage() {
     setSelectedValidator(null);
   }
 
-  const scatterData = allocationData?.allocations?.map((a: any, i: number) => ({
-    name: a.validatorName,
-    risk: [20, 15, 25, 35, 30][i],
-    reward: [a.score / 100, a.score / 100, a.score / 100, a.score / 100, a.score / 100][i] || a.score / 100,
-    amount: a.amountETH,
-    color: COLORS[i],
-  })) || [];
-
   const barData = allocationData?.allocations?.map((a: any, i: number) => ({
     name: a.validatorName?.replace("Validator ", ""),
     allocated: a.amountETH,
-    score: a.score / 100,
-    fill: COLORS[i],
+    score: (a.score || 0) / 100,
+    fill: COLORS[i % COLORS.length],
   })) || [];
+
+  const scatterData = allocationData?.allocations?.map((a: any, i: number) => ({
+    name: a.validatorName?.replace("Validator ", ""),
+    risk: a.risk || 20, 
+    reward: a.score || 0,
+    amount: (a.amount || 0.01) * 1000 + 300, 
+    color: COLORS[i % COLORS.length],
+  })) || [];
+
+
+
 
   return (
     <>
-      <div className="topbar">
-        <div className="topbar-left">
-          <h1>🧠 Allocation Strategy</h1>
-          <p>AI-powered optimal distribution across validators</p>
+      <div className="section-header" style={{ marginBottom: "48px" }}>
+        <div>
+          <h1 className="gradient-text" style={{ fontSize: "3rem", marginBottom: "8px" }}>Allocation Strategy</h1>
+          <p style={{ color: "var(--text-dim)", fontSize: "1rem" }}>AI-powered optimal distribution across validators</p>
         </div>
-        <div className="topbar-right">
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <div className="input-wrapper">
-              <input
-                className="input mono"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                style={{ width: "140px", paddingRight: "50px" }}
-                id="alloc-amount"
-              />
-              <span className="input-suffix">ETH</span>
-            </div>
-            <motion.button
-              className="btn btn-primary"
-              onClick={handleRecalculate}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              id="recalculate-btn"
-            >
-              🔄 Recalculate
-            </motion.button>
-          </div>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+           <div className="glass-card" style={{ padding: "8px 16px", display: "flex", alignItems: "center", gap: "8px" }}>
+             <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "var(--text-dim)" }}>AMOUNT:</span>
+             <input 
+              type="number" 
+              value={amount} 
+              onChange={(e) => setAmount(e.target.value)}
+              style={{ background: "transparent", border: "none", color: "white", fontWeight: "800", width: "80px", outline: "none", fontFamily: "JetBrains Mono" }}
+             />
+             <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "var(--neon-green)" }}>ETH</span>
+           </div>
+           <Button3D variant="primary" size="md" onClick={handleRecalculate}>🔄 Refresh Strategy</Button3D>
         </div>
       </div>
 
-      {/* Allocation Bar */}
+      {/* Distribution Overview Card */}
       <motion.div
-        className="card section"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-card section"
+        style={{ padding: "40px" }}
       >
-        <div className="section-header">
-          <h3 className="section-title">Distribution Overview</h3>
-          <span className="badge badge-purple">Strategy: {allocationData?.strategy || "weighted_score"}</span>
+        <div className="section-header" style={{ marginBottom: "32px" }}>
+          <h3 style={{ fontSize: "1.2rem" }}>Optimization Engine Overview</h3>
+          <span className="badge-neon">{allocationData?.strategy || "AI_WEIGHTED"}</span>
         </div>
 
-        <div className="alloc-bar" style={{ height: "20px", marginBottom: "24px", borderRadius: "var(--radius-lg)" }}>
+        <div style={{ height: "16px", display: "flex", borderRadius: "8px", overflow: "hidden", background: "rgba(255,255,255,0.02)", marginBottom: "48px" }}>
           {allocationData?.allocations?.map((a: any, i: number) => (
             <motion.div
               key={a.validatorName}
-              className="alloc-segment"
-              style={{ backgroundColor: COLORS[i % COLORS.length], cursor: "pointer" }}
-              initial={{ width: "0%" }}
+              initial={{ width: 0 }}
               animate={{ width: a.percentageHuman }}
-              transition={{ delay: i * 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: i * 0.1, duration: 1 }}
+              style={{ backgroundColor: COLORS[i % COLORS.length], cursor: "pointer", position: "relative" }}
               onClick={() => setSelectedValidator(a.validatorName === selectedValidator ? null : a.validatorName)}
-            />
+            >
+               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)" }} />
+            </motion.div>
           ))}
         </div>
 
-        {/* Validator Cards Grid */}
-        <StaggerContainer className="grid-3" style={{ gap: "16px" }}>
+        <StaggerContainer className="grid-3" style={{ gap: "20px" }}>
           {allocationData?.allocations?.map((a: any, i: number) => {
             const isFlipped = selectedValidator === a.validatorName;
 
             const frontSide = (
-              <motion.div
-                className="validator-card"
-                style={{
-                  borderColor: isFlipped ? COLORS[i] : undefined,
-                  background: isFlipped ? `${COLORS[i]}08` : "var(--bg-card)",
-                  flexDirection: "column",
-                  alignItems: "stretch",
-                  gap: "12px",
-                  height: "100%",
+              <div 
+                className="glass-card" 
+                style={{ 
+                  height: "100%", 
+                  padding: "24px", 
+                  display: "flex", 
+                  flexDirection: "column", 
+                  justifyContent: "space-between",
+                  borderColor: isFlipped ? COLORS[i % COLORS.length] : "var(--glass-border)",
+                  background: isFlipped ? `${COLORS[i % COLORS.length]}08` : "var(--glass-bg)"
                 }}
-                onClick={() => setSelectedValidator(isFlipped ? null : a.validatorName)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div className="validator-avatar" style={{
-                    background: `${COLORS[i]}18`,
-                    border: `1px solid ${COLORS[i]}33`,
-                    color: COLORS[i],
-                    width: "38px",
-                    height: "38px",
-                    fontSize: "0.9rem",
-                  }}>
-                    {a.validatorName?.charAt(0)}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{a.validatorName}</div>
-                    <div className="mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      Score: {a.score}
+                    <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: `${COLORS[i % COLORS.length]}20`, color: COLORS[i % COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "900", border: `1px solid ${COLORS[i % COLORS.length]}40` }}>
+                        {a.validatorName?.charAt(0)}
                     </div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                  <div>
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "2px" }}>ALLOCATED</div>
-                    <div className="mono" style={{ fontSize: "1.2rem", fontWeight: 800, color: COLORS[i] }}>
-                      {a.amountETH?.toFixed(2)} ETH
+                    <div>
+                        <div style={{ fontWeight: "800", color: "white", fontSize: "1rem" }}>{a.validatorName}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-dim)", fontWeight: "600" }}>SCORE: {((a.score || 0) / 100).toFixed(1)}%</div>
                     </div>
-                  </div>
-                  <div className="badge" style={{
-                    background: `${COLORS[i]}15`,
-                    color: COLORS[i],
-                  }}>
-                    {a.percentageHuman}
-                  </div>
+
                 </div>
 
-                <div style={{ marginTop: "4px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "4px" }}>
-                    <span>Adjust Custom Allocation</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    defaultValue={a.percentage}
-                    className="range-slider"
-                    style={{
-                      width: "100%",
-                      accentColor: COLORS[i],
-                      cursor: "ew-resize"
-                    }}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      // Just visual feedback per prompt "animated feedback"
-                      e.target.style.opacity = "0.7";
-                      setTimeout(() => e.target.style.opacity = "1", 200);
-                    }}
-                  />
-                  <style jsx>{`
-                    .range-slider {
-                      -webkit-appearance: none;
-                      height: 4px;
-                      background: rgba(255,255,255,0.1);
-                      border-radius: 4px;
-                      outline: none;
-                    }
-                    .range-slider::-webkit-slider-thumb {
-                      -webkit-appearance: none;
-                      width: 14px;
-                      height: 14px;
-                      border-radius: 50%;
-                      background: ${COLORS[i]};
-                      cursor: pointer;
-                      box-shadow: 0 0 10px ${COLORS[i]};
-                    }
-                  `}</style>
+                <div style={{ marginTop: "20px" }}>
+                   <div style={{ fontSize: "0.7rem", color: "var(--text-dim)", fontWeight: "700", marginBottom: "4px", textTransform: "uppercase" }}>Allocated</div>
+                   <div style={{ fontSize: "1.8rem", fontWeight: "900", color: "white" }}>
+                      {a.amountETH?.toFixed(2)} <span style={{ fontSize: "0.9rem", color: COLORS[i % COLORS.length] }}>ETH</span>
+                   </div>
                 </div>
-              </motion.div>
-            );
 
-            const backSide = (
-              <div
-                className="validator-card"
-                style={{
-                  borderColor: COLORS[i],
-                  background: "var(--bg-card)",
-                  flexDirection: "column",
-                  alignItems: "stretch",
-                  gap: "6px",
-                  height: "100%",
-                  padding: "10px",
-                }}
-                onClick={(e) => {
-                  if ((e.target as any).tagName !== "BUTTON") {
-                    setSelectedValidator(null);
-                  }
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h4 style={{ fontSize: "0.85rem", margin: 0 }}>📈 History</h4>
-                  <span className="badge" style={{ background: `${COLORS[i]}20`, color: COLORS[i] }}>{a.validatorName}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px" }}>
+                   <span className="badge-neon" style={{ background: `${COLORS[i % COLORS.length]}10`, color: COLORS[i % COLORS.length], borderColor: `${COLORS[i % COLORS.length]}20` }}>{a.percentageHuman}</span>
+                   <button onClick={() => setSelectedValidator(a.validatorName)} style={{ background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer", fontSize: "0.75rem", fontWeight: "700" }}>Details →</button>
                 </div>
-                <div style={{ flex: 1, minHeight: "50px", width: "100%" }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={
-                      (MOCK_HISTORY[a.validatorName.replace("Validator ", "")] || [50,55,60,65,70,75,80])
-                        .map((v, idx) => ({ month: ["J","F","M","A","M","J","J"][idx], perf: v }))
-                    }>
-                      <YAxis domain={["auto", "auto"]} hide />
-                      <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px" }} />
-                      <Line
-                        type="monotone"
-                        dataKey="perf"
-                        stroke={COLORS[i]}
-                        strokeWidth={2}
-                        dot={{ fill: "#1a1a3e", strokeWidth: 1, r: 3 }}
-                        activeDot={{ r: 5, fill: COLORS[i] }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-                <button 
-                  className="btn btn-primary btn-sm"
-                  style={{ width: "100%", padding: "4px 0", fontSize: "0.75rem", background: COLORS[i], color: "#000" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRecalculate();
-                    setSelectedValidator(null);
-                  }}
-                >
-                  🔄 Recalculate Allocation
-                </button>
               </div>
             );
 
+            const backSide = (
+              <div 
+                className="glass-card" 
+                style={{ height: "100%", padding: "20px", display: "flex", flexDirection: "column", borderColor: COLORS[i % COLORS.length], background: "var(--bg-secondary)" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                    <span style={{ fontWeight: "800", fontSize: "0.8rem", color: COLORS[i % COLORS.length] }}>LIVE METRICS</span>
+                    <button onClick={() => setSelectedValidator(null)} style={{ background: "transparent", border: "none", color: "white", cursor: "pointer" }}>✕</button>
+                </div>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div className="glass-card" style={{ padding: "12px", background: "rgba(255,255,255,0.02)" }}>
+                    <div style={{ fontSize: "0.65rem", color: "var(--text-dim)", fontWeight: "700", marginBottom: "4px" }}>RELIABILITY SCORE</div>
+                    <div style={{ fontSize: "1.2rem", fontWeight: "900", color: COLORS[i % COLORS.length] }}>{((a.score || 0) / 100).toFixed(1)}%</div>
+                  </div>
+                  
+                  <div className="glass-card" style={{ padding: "12px", background: "rgba(255,255,255,0.02)" }}>
+                    <div style={{ fontSize: "0.65rem", color: "var(--text-dim)", fontWeight: "700", marginBottom: "4px" }}>OPTIMAL WEIGHT</div>
+                    <div style={{ fontSize: "1.2rem", fontWeight: "900", color: "white" }}>{a.percentageHuman}</div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: "12px", background: "rgba(255,255,255,0.02)" }}>
+                    <div style={{ fontSize: "0.65rem", color: "var(--text-dim)", fontWeight: "700", marginBottom: "4px" }}>ADDRESS</div>
+                    <div style={{ fontSize: "0.75rem", fontWeight: "600", color: "var(--text-dim)", fontFamily: "JetBrains Mono" }}>
+                      {a.validator?.substring(0, 10)}...{a.validator?.substring(a.validator.length - 4)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+
+
             return (
               <StaggerItem key={a.validatorName}>
-                <div style={{ width: "100%", height: "160px" }}>
-                  <FlipCard
-                    front={frontSide}
-                    back={backSide}
-                    isFlipped={isFlipped}
-                    style={{ width: "100%", height: "100%" }}
+                <div style={{ height: "220px", width: "100%" }}>
+                  <FlipCard 
+                    front={frontSide} 
+                    back={backSide} 
+                    isFlipped={isFlipped} 
+                    style={{ height: "100%", width: "100%" }} 
                   />
                 </div>
               </StaggerItem>
@@ -298,60 +221,76 @@ export default function AllocationPage() {
         </StaggerContainer>
       </motion.div>
 
-      {/* Charts Row */}
+      {/* Analytics Row */}
       <div className="grid-2 section">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
-        >
-          <div className="card">
-            <h3 className="section-title" style={{ marginBottom: "20px" }}>📊 Allocation Distribution</h3>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData} barCategoryGap="25%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                  <XAxis dataKey="name" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }} />
-                  <Bar dataKey="allocated" radius={[8, 8, 0, 0]}>
-                    {barData.map((entry: any, i: number) => (
-                      <Cell key={i} fill={COLORS[i]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}>
+          <Card3D glowColor="var(--neon-green)" height={400}>
+            <div className="section-header" style={{ marginBottom: "24px" }}>
+              <h3 style={{ fontSize: "1.2rem" }}>Node Weighting Bar</h3>
+              <span className="badge-neon">Volume Distribution</span>
             </div>
-          </div>
+            <div style={{ height: "260px", width: "100%", minWidth: 0 }}>
+               <ResponsiveContainer width="99%" height="100%">
+                  <BarChart data={barData}>
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: 'var(--text-dim)', fontSize: 10, fontWeight: 700 }}
+                    />
+                    <Tooltip contentStyle={{ background: "var(--bg-secondary)", border: "1px solid var(--glass-border)", borderRadius: "12px" }} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                    <Bar dataKey="allocated" radius={[6, 6, 0, 0]}>
+                       {barData.map((entry: any, i: number) => (
+                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                       ))}
+                    </Bar>
+                  </BarChart>
+               </ResponsiveContainer>
+            </div>
+          </Card3D>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-        >
-          <div className="card">
-            <h3 className="section-title" style={{ marginBottom: "20px" }}>🎯 Risk vs Reward</h3>
-            <div className="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-                  <XAxis type="number" dataKey="risk" name="Risk" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} label={{ value: "Risk %", position: "bottom", fill: "#64748B", fontSize: 11 }} />
-                  <YAxis type="number" dataKey="reward" name="Reward" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} label={{ value: "Score", angle: -90, position: "insideLeft", fill: "#64748B", fontSize: 11 }} />
-                  <ZAxis type="number" dataKey="amount" range={[80, 300]} />
-                  <Tooltip contentStyle={{ background: "#1a1a3e", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px" }} />
-                  <Scatter data={scatterData}>
-                    {scatterData.map((entry: any, i: number) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Scatter>
-                </ScatterChart>
-              </ResponsiveContainer>
+        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}>
+          <Card3D glowColor="var(--neon-blue)" height={400}>
+            <div className="section-header" style={{ marginBottom: "24px" }}>
+              <h3 style={{ fontSize: "1.2rem" }}>Risk Efficiency Frontier</h3>
+              <span className="badge-neon">Scatter Analysis</span>
             </div>
-          </div>
+            <div style={{ height: "260px", width: "100%", minWidth: 0 }}>
+               <ResponsiveContainer width="99%" height="100%">
+                   <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 10 }}>
+                    <XAxis type="number" dataKey="risk" name="Risk" hide domain={[0, 50]} />
+                    <YAxis type="number" dataKey="reward" name="Reward" hide domain={[0, 100]} />
+                    <ZAxis type="number" dataKey="amount" range={[400, 1500]} />
+                    <Tooltip 
+                      cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.2)' }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="glass-card" style={{ padding: "12px", border: "1px solid var(--glass-border)", background: "rgba(10,10,15,0.9)", backdropFilter: "blur(12px)", borderRadius: "12px", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+                              <div style={{ color: "white", fontWeight: "800", marginBottom: "4px", fontSize: "0.9rem" }}>{data.name}</div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                <div style={{ color: "var(--neon-green)", fontSize: "0.75rem", fontWeight: "700" }}>REWARD: {((data.reward || 0) / 100).toFixed(1)}%</div>
+                                <div style={{ color: "var(--neon-blue)", fontSize: "0.75rem", fontWeight: "700" }}>RISK SCORE: {((data.risk || 0) / 100).toFixed(1)}%</div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Scatter data={scatterData}>
+                       {scatterData.map((entry: any, i: number) => (
+                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                       ))}
+                    </Scatter>
+                  </ScatterChart>
+               </ResponsiveContainer>
+            </div>
+          </Card3D>
         </motion.div>
       </div>
-
     </>
   );
 }

@@ -10,7 +10,7 @@ interface Props {
 export default function MonteCarloChart({ distribution, initialAmount }: Props) {
   // Sort and format distribution into buckets for a smooth bell-curve look
   const sorted = [...distribution].sort((a, b) => a - b);
-  
+
   // We'll just show the distribution as a line/area of the sorted outcomes to keep it simple and beautiful
   const data = sorted.map((val, index) => ({
     percentile: ((index / sorted.length) * 100).toFixed(0) + '%',
@@ -18,50 +18,69 @@ export default function MonteCarloChart({ distribution, initialAmount }: Props) 
     isLoss: val < initialAmount
   }));
 
+  const minValue = Math.min(...sorted);
+  const maxValue = Math.max(...sorted);
+  // Add a 5% buffer to make the distribution float nicely in the middle
+  const padding = (maxValue - minValue) * 0.05 || (initialAmount * 0.001);
+  const domainMin = minValue - padding;
+  const domainMax = maxValue + padding;
+
   return (
-    <div className="w-full h-64 mt-4 bg-black/30 p-4 rounded-xl border border-white/5">
-      <h4 className="text-sm font-semibold text-cyan-400 mb-4 px-2">Simulated Outcome Distribution (Sorted Paths)</h4>
+    <div className="analytics-chart-container" style={{ width: "100%", height: "400px", marginTop: "32px", position: "relative" }}>
+      <h4 style={{ position: "absolute", top: -24, left: 16, fontSize: "0.85rem", color: "var(--neon-cyan)", fontWeight: "600" }}>
+        Simulated Outcome Distribution (Sorted Paths)
+      </h4>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
           <defs>
             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-            </linearGradient>
-            <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+              <stop offset="5%" stopColor={minValue < initialAmount ? "#FF4D6A" : "#CAFF33"} stopOpacity={0.6} />
+              <stop offset="95%" stopColor={minValue < initialAmount ? "#FF4D6A" : "#CAFF33"} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-          <XAxis 
-            dataKey="percentile" 
-            stroke="#ffffff50" 
-            fontSize={12} 
-            tickMargin={10} 
-            minTickGap={30}
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <XAxis
+            dataKey="percentile"
+            stroke="rgba(255,255,255,0.3)"
+            fontSize={10}
+            tickMargin={10}
+            minTickGap={40}
+            hide={false}
           />
-          <YAxis 
-            stroke="#ffffff50" 
-            fontSize={12} 
-            tickFormatter={(val) => val.toFixed(1)} 
+          <YAxis
+            stroke="rgba(255,255,255,0.3)"
+            fontSize={10}
+            domain={[domainMin, domainMax]}
+            tickFormatter={(val) => val.toFixed(5)}
+            width={70}
           />
-          <Tooltip 
-            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
-            itemStyle={{ color: '#22d3ee' }}
-            labelStyle={{ color: '#94a3b8' }}
-            formatter={(value: number) => [value.toFixed(3) + ' ETH', 'Simulated Portfolio Value']}
+          <Tooltip
+            contentStyle={{ 
+              backgroundColor: "#1a1a3e", 
+              border: "1px solid rgba(255,255,255,0.1)", 
+              borderRadius: "12px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+              color: "white"
+            }}
+            labelStyle={{ color: "var(--text-dim)", marginBottom: "4px" }}
+            itemStyle={{ color: "var(--neon-green)", fontWeight: "bold" }}
+            formatter={(value: any) => [`${parseFloat(value).toFixed(6)} ETH`, 'Portfolio Valuation']}
+
           />
-          <Area 
-            type="monotone" 
-            dataKey="value" 
-            stroke="#a855f7" 
-            strokeWidth={2}
-            fillOpacity={1} 
-            fill="url(#colorValue)" 
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke={minValue < initialAmount ? "#FF4D6A" : "#CAFF33"}
+            strokeWidth={3}
+            fillOpacity={1}
+            fill="url(#colorValue)"
+            animationDuration={2500}
+            baseValue="dataMin"
           />
         </AreaChart>
       </ResponsiveContainer>
     </div>
+
+
   );
 }

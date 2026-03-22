@@ -27,8 +27,9 @@ contract Vault is IVault, Ownable, ReentrancyGuard {
     uint256 private _totalShares;
     uint256 private _totalAssets;
 
-    uint256 public constant MIN_DEPOSIT = 0.01 ether;
-    uint256 public constant WITHDRAWAL_COOLDOWN = 1 days;
+    uint256 public constant MIN_DEPOSIT = 0.0001 ether;
+    uint256 public constant WITHDRAWAL_COOLDOWN = 1 minutes;
+
 
     // ═══════════════════════════════════════════════════════
     //                      CONSTRUCTOR

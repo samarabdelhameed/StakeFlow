@@ -1,7 +1,8 @@
 'use client';
 
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { parseEther, formatEther, parseGwei } from 'viem';
+
 import { VAULT_ADDRESS, VAULT_ABI } from '@/lib/contracts';
 import { toast } from 'react-hot-toast';
 import { useState, useEffect } from 'react';
@@ -19,19 +20,8 @@ export function useStakeFlow() {
     hash: txHash,
   });
 
-  // Handle Toast Notifications & States
-  useEffect(() => {
-    if (isWaiting) {
-      toast.loading('Transaction Confirming...', { id: txHash });
-    }
-    if (isConfirmed) {
-      toast.success('Transaction Successful! 🚀', { id: txHash });
-      setIsPendingTx(false);
-      setTxHash(undefined);
-    }
-  }, [isWaiting, isConfirmed, txHash]);
-
   // View: Get User Position
+
   const { data: rawPosition, refetch: refetchPosition } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
@@ -42,12 +32,27 @@ export function useStakeFlow() {
     }
   });
 
-  const position = rawPosition ? {
-    deposited: formatEther((rawPosition as any).deposited),
-    ethValue: formatEther((rawPosition as any).ethValue),
-    shares: formatEther((rawPosition as any).shares),
-    canWithdraw: (rawPosition as any).canWithdraw,
+  // Handle Toast Notifications & States
+  useEffect(() => {
+    if (isWaiting) {
+      toast.loading('Transaction Confirming...', { id: txHash });
+    }
+    if (isConfirmed) {
+      toast.success('Transaction Successful! 🚀', { id: txHash });
+      setIsPendingTx(false);
+      setTxHash(undefined);
+      refetchPosition();
+    }
+  }, [isWaiting, isConfirmed, txHash, refetchPosition]);
+
+  const position = rawPosition && Array.isArray(rawPosition) ? {
+
+    deposited: formatEther(rawPosition[0] as bigint),
+    shares: formatEther(rawPosition[1] as bigint),
+    ethValue: formatEther(rawPosition[2] as bigint),
+    canWithdraw: rawPosition[4] as boolean,
   } : null;
+
 
   // View: TVL
   const { data: totalValueLocked } = useReadContract({
@@ -66,7 +71,11 @@ export function useStakeFlow() {
         abi: VAULT_ABI,
         functionName: 'deposit',
         value: parseEther(amountEth),
+        // Manual gas override to bypass Sepolia base fee issues
+        maxFeePerGas: parseGwei('0.1'), 
+        maxPriorityFeePerGas: parseGwei('0.05'),
       });
+
       setTxHash(hash);
       return hash;
     } catch (err: any) {
@@ -85,7 +94,11 @@ export function useStakeFlow() {
         abi: VAULT_ABI,
         functionName: 'withdrawETH',
         args: [parseEther(amountEth)],
+        // Manual gas override to bypass Sepolia base fee issues
+        maxFeePerGas: parseGwei('0.1'), 
+        maxPriorityFeePerGas: parseGwei('0.05'),
       });
+
       setTxHash(hash);
       return hash;
     } catch (err: any) {

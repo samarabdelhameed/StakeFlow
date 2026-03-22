@@ -10,12 +10,12 @@ echo "✅ Contracts are Production-Ready."
 cd ..
 
 # 2. AI Backend (Bun)
-echo "🧠 [3/4] Ignition: Starting Monte Carlo AI Engine on port 3000..."
+echo "🧠 [3/4] Ignition: Starting Monte Carlo AI Engine on port 8080..."
 cd backend
 bun run src/index.ts &
 BACKEND_PID=$!
 sleep 2
-echo "✅ AI Engine is listening on port 3000."
+echo "✅ AI Engine is listening on port 8080."
 cd ..
 
 # 3. Frontend (Next.js)
@@ -27,7 +27,7 @@ FRONTEND_PID=$!
 echo "======================================================"
 echo "🏆 STAKEFLOW IS LIVE! 🏆"
 echo "🌐 Frontend: http://localhost:3001"
-echo "🧠 Backend API: http://localhost:3000 (Bun)"
+echo "🧠 Backend API: http://localhost:8080 (Bun)"
 echo "⚠️ Press Ctrl+C to terminate all services."
 echo "======================================================"
 

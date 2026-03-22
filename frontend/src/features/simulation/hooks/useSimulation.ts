@@ -23,8 +23,8 @@ export function useSimulation() {
     setIsLoading(true);
     setError(null);
     try {
-      // Assuming Bun backend is running on port 3000
-      const response = await fetch('http://localhost:3000/simulate', {
+      // Assuming Bun backend is running on port 8080
+      const response = await fetch('http://localhost:8080/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount, validators, correlationMatrix }),
@@ -48,5 +48,29 @@ export function useSimulation() {
     }
   };
 
-  return { data, isLoading, error, runSimulation };
+  const runSlashingSimulation = async (amount: number, validators: any[], correlationMatrix: number[][]) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('http://localhost:8080/api/simulate/shocker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, validators, correlationMatrix }),
+      });
+
+      if (!response.ok) throw new Error('Slashing simulation failed');
+      const result: SimulationResult = await response.json();
+      
+      setTimeout(() => {
+        setData(result);
+        setIsLoading(false);
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message);
+      setIsLoading(false);
+    }
+  };
+
+  return { data, isLoading, error, runSimulation, runSlashingSimulation };
 }
+
