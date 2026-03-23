@@ -1,6 +1,8 @@
 # StakeFlow — Risk-Aware Restaking Protocol
 
 > Intelligent capital allocation for secure and optimized restaking.
+>
+> 🌐 **[Live Demo Dashboard](https://frontend-qqufmlb09-samarabdelhameeds-projects-df99c328.vercel.app)**
 
 ---
 
